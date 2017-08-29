@@ -3,7 +3,9 @@ from enum import Enum
 import math
 import random
 import socketserver
+import socket
 import sys
+from _thread import *
 
 WINDOW_SIZE_X = 800
 WINDOW_SIZE_Y = 700
@@ -21,6 +23,7 @@ class Cell:
         self.center = center
         self.radiu = radius
         self.type = type
+        self.letter = letter
 
         vertices = []
         for i in range(0, 6):
@@ -46,6 +49,9 @@ class Cell:
 
     def GetType(self):
         return self.type
+
+    def GetLetter(self):
+        return self.letter
 
 cells = []
 cellMap = {}
@@ -85,19 +91,45 @@ def chooseRandomBlockedBlocks():
             cell = cells[idx]
             cell.SetType(CELL_TYPE.BLOCKED)
 
-class MyTCPHandler(socketserver.BaseRequestHandler):
-    def handle(self):
-        # self.request is the TCP socket connected to the client
-        while True:
-            self.data = self.request.recv(1024)
-            print(self.data)
-        # just send back the same data, but upper-cased
-        #self.request.sendall(self.data.upper())
+def sendDataToClient(conn, data):
+    conn.sendall(bytes(data.encode()))
+
+def readDataFromClient(socket):
+    data = ''
+    buffer = ''
+    while True:
+        data = socket.recv(4096)
+        if not data: 
+            break
+        buffer += str(data)
+
+    if data:
+        return buffer
+
+def main():
+    redSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    redSocket.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
+    redSocket.bind(('', 6666))
+    redSocket.listen(10)
+
+    blueSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    blueSocket.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
+    blueSocket.bind(('', 6667))
+    blueSocket.listen(10)
+
+    print('Waiting for RED player')
+    redConn, addr = redSocket.accept()
+    sendDataToClient(redConn, 'Welcome RED player')
+    print('Waiting for BLUE Player')
+    blueConn, addr = blueSocket.accept()
+    sendDataToClient(blueConn, 'Welcome BLUE player')
+
+    print(readDataFromClient(redConn))
+
+    redSocket.close()
+    blueSocket.close()
 
 if __name__ == "__main__":
     drawField()
     chooseRandomBlockedBlocks()
-
-    HOST, PORT = 'localhost', 4500
-    server = socketserver.TCPServer((HOST, PORT), MyTCPHandler)
-    server.serve_forever()
+    main()

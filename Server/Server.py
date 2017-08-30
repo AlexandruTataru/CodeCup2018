@@ -92,19 +92,25 @@ def chooseRandomBlockedBlocks():
             cell.SetType(CELL_TYPE.BLOCKED)
 
 def sendDataToClient(conn, data):
-    conn.sendall(bytes(data.encode()))
+    conn.send(bytes(data.encode()))
 
-def readDataFromClient(socket):
+def readDataFromClient(sock, n):
     data = ''
-    buffer = ''
-    while True:
-        data = socket.recv(4096)
-        if not data: 
-            break
-        buffer += str(data)
+    while len(data) < n:
+        packet = sock.recv(n - len(data))
+        data += str(packet)
+    return data
 
-    if data:
-        return buffer
+def recvall(sock):
+    BUFF_SIZE = 4096 # 4 KiB
+    data = ""
+    while True:
+        part = sock.recv(BUFF_SIZE)
+        data += str(part)
+        if int(part) < BUFF_SIZE:
+            # either 0 or end of data
+            break
+    return data
 
 def main():
     redSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -119,12 +125,21 @@ def main():
 
     print('Waiting for RED player')
     redConn, addr = redSocket.accept()
-    sendDataToClient(redConn, 'Welcome RED player')
+
+    for cell in cells:
+        if cell.GetType() == CELL_TYPE.BLOCKED:
+            sendDataToClient(redConn, cell.GetLetter())
+    
     print('Waiting for BLUE Player')
     blueConn, addr = blueSocket.accept()
-    sendDataToClient(blueConn, 'Welcome BLUE player')
 
-    print(readDataFromClient(redConn))
+    for cell in cells:
+        if cell.GetType() == CELL_TYPE.BLOCKED:
+            sendDataToClient(blueConn, cell.GetLetter())
+
+    sendDataToClient(redConn, "Start")
+    data = recvall(redConn)
+    print("Received data: " + str(data))
 
     redSocket.close()
     blueSocket.close()

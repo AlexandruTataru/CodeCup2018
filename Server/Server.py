@@ -33,7 +33,8 @@ class Cell:
 
         self.label = Text(center, letter)
         self.label.setFace('courier')
-        self.label.setSize(12)
+        self.label.setSize(20)
+        self.label.setWidth(60)
         
         self.shape = Polygon(vertices)
         self.shape.setWidth(2)
@@ -58,6 +59,10 @@ class Cell:
 
     def GetLetter(self):
         return self.letter
+
+    def SetValue(self, value):
+        self.value = value
+        self.label.setText(str(value))
 
 cells = []
 cellMap = {}
@@ -131,18 +136,20 @@ def main():
 
     sendDataToClient(redConn, "Start")
 
-    NR_MOVES = 1
+    NR_MOVES = 15
     for i in range(0, NR_MOVES):
         print("Waiting to read from RED player")
         data = readDataFromClient(redConn)
         print(data)
         cellMap[data[0:2]].SetType(CELL_TYPE.RED_PLAYER)
+        cellMap[data[0:2]].SetValue(int(data[3:]))
         print("Sending move to BLUE player")
         sendDataToClient(blueConn, data)
         print("Waiting to read from BLUE player")
         data = readDataFromClient(blueConn)
         print(data)
         cellMap[data[0:2]].SetType(CELL_TYPE.BLUE_PLAYER)
+        cellMap[data[0:2]].SetValue(int(data[3:]))
         if i != NR_MOVES - 1:
             print("Sending more to RED player")
             sendDataToClient(redConn, data)

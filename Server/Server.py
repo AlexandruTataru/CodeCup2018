@@ -16,7 +16,9 @@ window = GraphWin("CodeCup 2018 Server", WINDOW_SIZE_X, WINDOW_SIZE_Y)
 class CELL_TYPE(Enum):
     PLAYABLE = 0
     BLOCKED = 1
-6
+    RED_PLAYER = 2
+    BLUE_PLAYER = 3
+
 class Cell:
 
     def __init__(self, center, radius, type, letter):
@@ -46,6 +48,10 @@ class Cell:
             self.shape.setFill('lightgrey')
         elif self.type == CELL_TYPE.BLOCKED:
             self.shape.setFill('darkgrey')
+        elif self.type == CELL_TYPE.RED_PLAYER:
+            self.shape.setFill('red')
+        elif self.type == CELL_TYPE.BLUE_PLAYER:
+            self.shape.setFill('blue')
 
     def GetType(self):
         return self.type
@@ -94,23 +100,9 @@ def chooseRandomBlockedBlocks():
 def sendDataToClient(conn, data):
     conn.send(bytes(data.encode()))
 
-def readDataFromClient(sock, n):
-    data = ''
-    while len(data) < n:
-        packet = sock.recv(n - len(data))
-        data += str(packet)
-    return data
-
-def recvall(sock):
-    BUFF_SIZE = 4096 # 4 KiB
-    data = ""
-    while True:
-        part = sock.recv(BUFF_SIZE)
-        data += str(part)
-        if int(part) < BUFF_SIZE:
-            # either 0 or end of data
-            break
-    return data
+def readDataFromClient(conn):
+    data = conn.recv(1024)
+    return str(data, 'utf-8')
 
 def main():
     redSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -138,8 +130,27 @@ def main():
             sendDataToClient(blueConn, cell.GetLetter())
 
     sendDataToClient(redConn, "Start")
-    data = recvall(redConn)
-    print("Received data: " + str(data))
+
+    NR_MOVES = 1
+    for i in range(0, NR_MOVES):
+        print("Waiting to read from RED player")
+        data = readDataFromClient(redConn)
+        print(data)
+        cellMap[data[0:2]].SetType(CELL_TYPE.RED_PLAYER)
+        print("Sending move to BLUE player")
+        sendDataToClient(blueConn, data)
+        print("Waiting to read from BLUE player")
+        data = readDataFromClient(blueConn)
+        print(data)
+        cellMap[data[0:2]].SetType(CELL_TYPE.BLUE_PLAYER)
+        if i != NR_MOVES - 1:
+            print("Sending more to RED player")
+            sendDataToClient(redConn, data)
+
+    print("Sending QUIT to RED")
+    sendDataToClient(redConn, "Quit")
+    print("Sending QUIT to BLUE")
+    sendDataToClient(blueConn, "Quit")
 
     redSocket.close()
     blueSocket.close()

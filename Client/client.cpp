@@ -19,6 +19,11 @@ char recvbuf[DEFAULT_BUFLEN];
 
 using namespace std;
 
+std::string processMove(char* move)
+{
+    return "D5=12";
+}
+
 int main(int argc, char **argv)
 {
     WSADATA wsaData;
@@ -90,44 +95,44 @@ int main(int argc, char **argv)
 
     //printf("Bytes Sent: %ld\n", iResult);
 
-    // shutdown the connection since no more data will be sent
-    iResult = shutdown(ConnectSocket, SD_SEND);
-    if (iResult == SOCKET_ERROR) {
-        printf("shutdown failed with error: %d\n", WSAGetLastError());
-        closesocket(ConnectSocket);
-        WSACleanup();
-        return 1;
+    memset(recvbuf, 0, DEFAULT_BUFLEN);
+    recv(ConnectSocket, recvbuf, 2, 0);
+    printf("Received: %s\n", recvbuf);
+
+    memset(recvbuf, 0, DEFAULT_BUFLEN);
+    recv(ConnectSocket, recvbuf, 2, 0);
+    printf("Received: %s\n", recvbuf);
+
+    memset(recvbuf, 0, DEFAULT_BUFLEN);
+    recv(ConnectSocket, recvbuf, 2, 0);
+    printf("Received: %s\n", recvbuf);
+
+    memset(recvbuf, 0, DEFAULT_BUFLEN);
+    recv(ConnectSocket, recvbuf, 2, 0);
+    printf("Received: %s\n", recvbuf);
+
+    memset(recvbuf, 0, DEFAULT_BUFLEN);
+    recv(ConnectSocket, recvbuf, 2, 0);
+    printf("Received: %s\n", recvbuf);
+
+    memset(recvbuf, 0, DEFAULT_BUFLEN);
+    recv(ConnectSocket, recvbuf, DEFAULT_BUFLEN, 0);
+    printf("Received: %s\n", recvbuf);
+
+    while(strncmp(recvbuf, "Quit", 4) != 0)
+    {
+        Sleep(500);
+        string response = processMove(recvbuf);
+        printf("Sending move %s\n", response.c_str());
+        iResult = send(ConnectSocket, response.c_str(), response.size(), 0 );
+        if (iResult == SOCKET_ERROR)
+            printf("send failed with error: %d\n", WSAGetLastError());
+        else
+            printf("Send %d bytes successfully\n", iResult);
+        memset(recvbuf, 0, DEFAULT_BUFLEN);
+        recv(ConnectSocket, recvbuf, DEFAULT_BUFLEN, 0);
+        printf("Received: %s\n", recvbuf);
     }
-
-    memset(recvbuf, 0, DEFAULT_BUFLEN);
-    recv(ConnectSocket, recvbuf, 2, 0);
-    printf("Received: %s\n", recvbuf);
-
-    memset(recvbuf, 0, DEFAULT_BUFLEN);
-    recv(ConnectSocket, recvbuf, 2, 0);
-    printf("Received: %s\n", recvbuf);
-
-    memset(recvbuf, 0, DEFAULT_BUFLEN);
-    recv(ConnectSocket, recvbuf, 2, 0);
-    printf("Received: %s\n", recvbuf);
-
-    memset(recvbuf, 0, DEFAULT_BUFLEN);
-    recv(ConnectSocket, recvbuf, 2, 0);
-    printf("Received: %s\n", recvbuf);
-
-    memset(recvbuf, 0, DEFAULT_BUFLEN);
-    recv(ConnectSocket, recvbuf, 2, 0);
-    printf("Received: %s\n", recvbuf);
-
-    memset(recvbuf, 0, DEFAULT_BUFLEN);
-    recv(ConnectSocket, recvbuf, 5, 0);
-    printf("Received: %s\n", recvbuf);
-
-    iResult = send(ConnectSocket, "A5=13", 5, 0 );
-    if (iResult == SOCKET_ERROR)
-        printf("send failed with error: %d\n", WSAGetLastError());
-    else
-        printf("Send %d bytes successfully\n", iResult);
 
     closesocket(ConnectSocket);
     WSACleanup();

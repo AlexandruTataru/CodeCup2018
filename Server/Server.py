@@ -64,6 +64,9 @@ class Cell:
         self.value = value
         self.label.setText(str(value))
 
+    def GetValue(self):
+        return self.value
+
 cells = []
 cellMap = {}
 
@@ -162,7 +165,68 @@ def main():
     redSocket.close()
     blueSocket.close()
 
+def getNeighbors(cellID):
+    letter = cellID[0]
+    number = int(cellID[1])
+
+    neighbors = []
+
+    neighborKeys = [(str(chr(ord(letter) - 1)) + str(number)),
+                    (str(chr(ord(letter) - 1)) + str(number + 1)),
+                    (str(chr(ord(letter) - 0)) + str(number - 1)),
+                    (str(chr(ord(letter) - 0)) + str(number + 1)),
+                    (str(chr(ord(letter) + 1)) + str(number - 1)),
+                    (str(chr(ord(letter) + 1)) + str(number))]
+
+    for key in cellMap.keys():
+        if key in neighborKeys and cellMap[key].GetType() != CELL_TYPE.BLOCKED:
+            neighbors.append(cellMap[key])
+
+    return neighbors
+
+def displayWinner():
+
+    redPoints = 0
+    bluePoints = 0
+
+    for cell in cells:
+        if cell.GetType() == CELL_TYPE.PLAYABLE:
+            neighbors = getNeighbors(cell.GetLetter())
+            for neighbor in neighbors:
+                if neighbor.GetType() == CELL_TYPE.RED_PLAYER:
+                    redPoints += neighbor.GetValue()
+                elif neighbor.GetType() == CELL_TYPE.BLUE_PLAYER:
+                    bluePoints += neighbor.GetValue()
+
+    winnerLabel = Text(Point(WINDOW_SIZE_X * 0.22, 50), "")
+    scoreLabel = Text(Point(WINDOW_SIZE_X * 0.22, 90), "")
+    winnerLabel.setFace('courier')
+    scoreLabel.setFace('courier')
+    winnerLabel.setSize(36)
+    scoreLabel.setSize(36)
+    winnerLabel.setStyle('bold')
+    scoreLabel.setStyle('bold')
+    winnerLabel.setWidth(WINDOW_SIZE_X)
+    scoreLabel.setWidth(WINDOW_SIZE_X)
+    
+    if bluePoints > redPoints:
+        winnerLabel.setText("BLUE WON")
+        winnerLabel.setFill('blue')
+        scoreLabel.setText(str(bluePoints) + " to " + str(redPoints))
+    elif bluePoints < redPoints:
+        winnerLabel.setText("RED WON")
+        winnerLabel.setFill('red')
+        scoreLabel.setText(str(redPoints) + " to " + str(bluePoints))
+    elif bluePoints == redPoints:
+        winnerLabel.setText("DRAW")
+        winnerLabel.setFill('black')
+        scoreLabel.setText(str(redPoints) + " SAME")
+
+    winnerLabel.draw(window)
+    scoreLabel.draw(window)
+
 if __name__ == "__main__":
     drawField()
     chooseRandomBlockedBlocks()
     main()
+    displayWinner()

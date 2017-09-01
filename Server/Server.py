@@ -11,6 +11,11 @@ WINDOW_SIZE_X = 800
 WINDOW_SIZE_Y = 700
 CELL_RADIUS = 50
 
+RED_COLOR = '#e43326'
+BLUE_COLOR = '#2f41a5'
+NORMAL_COLOR = '#dddddd'
+BLOCKED_COLOR = '#694538'
+
 window = GraphWin("CodeCup 2018 Server", WINDOW_SIZE_X, WINDOW_SIZE_Y)
 
 class CELL_TYPE(Enum):
@@ -33,10 +38,11 @@ class Cell:
 
         self.label = Text(center, letter)
         self.label.setFace('courier')
-        self.label.setSize(20)
+        self.label.setSize(34)
         self.label.setWidth(60)
         
         self.shape = Polygon(vertices)
+        self.shape.setFill(NORMAL_COLOR)
         self.shape.setWidth(2)
 
     def Draw(self, window):
@@ -46,13 +52,15 @@ class Cell:
     def SetType(self, type):
         self.type = type
         if self.type == CELL_TYPE.PLAYABLE:
-            self.shape.setFill('lightgrey')
+            self.shape.setFill(NORMAL_COLOR)
         elif self.type == CELL_TYPE.BLOCKED:
-            self.shape.setFill('darkgrey')
+            self.shape.setFill(BLOCKED_COLOR)
         elif self.type == CELL_TYPE.RED_PLAYER:
-            self.shape.setFill('red')
+            self.shape.setFill(RED_COLOR)
+            self.label.setFill('#222222')
         elif self.type == CELL_TYPE.BLUE_PLAYER:
-            self.shape.setFill('blue')
+            self.shape.setFill(BLUE_COLOR)
+            self.label.setFill('#f8f8f8')
 
     def GetType(self):
         return self.type
@@ -211,11 +219,11 @@ def displayWinner():
     
     if bluePoints > redPoints:
         winnerLabel.setText("BLUE WON")
-        winnerLabel.setFill('blue')
+        winnerLabel.setFill(BLUE_COLOR)
         scoreLabel.setText(str(bluePoints) + " to " + str(redPoints))
     elif bluePoints < redPoints:
         winnerLabel.setText("RED WON")
-        winnerLabel.setFill('red')
+        winnerLabel.setFill(RED_COLOR)
         scoreLabel.setText(str(redPoints) + " to " + str(bluePoints))
     elif bluePoints == redPoints:
         winnerLabel.setText("DRAW")

@@ -11,8 +11,8 @@ from _thread import *
 WINDOW_SIZE_X = 800
 WINDOW_SIZE_Y = 700
 CELL_RADIUS = 50
-DELAY = 0.01
-NR_GAMES = 50
+DELAY = 0.05
+NR_GAMES = 5
 
 RED_COLOR = '#e43326'
 BLUE_COLOR = '#2f41a5'
@@ -56,8 +56,10 @@ class Cell:
         self.type = type
         if self.type == CELL_TYPE.PLAYABLE:
             self.shape.setFill(NORMAL_COLOR)
+            self.label.setFill('black')
         elif self.type == CELL_TYPE.BLOCKED:
             self.shape.setFill(BLOCKED_COLOR)
+            self.label.setFill('black')
         elif self.type == CELL_TYPE.RED_PLAYER:
             self.shape.setFill(RED_COLOR)
             self.label.setFill('#222222')
@@ -77,6 +79,10 @@ class Cell:
 
     def GetValue(self):
         return self.value
+
+    def Reset(self):
+        self.label.setText(self.letter)
+        self.SetType(CELL_TYPE.PLAYABLE)
 
 cells = []
 cellMap = {}
@@ -130,6 +136,10 @@ def readDataFromClient(conn):
     print('Read data: ' + dataRead)
     return dataRead
 
+def clearBoard():
+    for cell in cells:
+        cell.Reset()
+
 def main():
     redSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     redSocket.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
@@ -152,6 +162,7 @@ def main():
     sendDataToClient(blueConn, str(NR_GAMES))
 
     for i in range(0, NR_GAMES):
+        clearBoard()
         chooseRandomBlockedBlocks()
 
         for cell in cells:

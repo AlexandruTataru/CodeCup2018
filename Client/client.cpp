@@ -1,4 +1,3 @@
-#include "stdafx.h"
 #define WIN32_LEAN_AND_MEAN
 
 #include <windows.h>
@@ -19,6 +18,16 @@
 
 using namespace std;
 
+std::vector<std::string> allowedMoves = { "A1", "A2", "A3", "A4", "A5", "A6", "A7", "A8",
+"B1", "B2", "B3", "B4", "B5", "B6", "B7",
+"C1", "C2", "C3", "C4", "C5", "C6",
+"D1", "D2", "D3", "D4", "D5",
+"E1", "E2" ,"E3", "E4",
+"F1", "F2", "F3",
+"G1", "G2",
+"H1" };
+std::vector<size_t> allowedValues = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
+
 std::string receiveData(const SOCKET& socket, const size_t& len)
 {
 	char *recvbuf = new char(len + 1);
@@ -35,7 +44,7 @@ void sendData(const SOCKET& socket, const std::string& data)
 	send(socket, data.c_str(), data.size(), 0);
 }
 
-std::string processMove(std::vector<size_t>& allowedValues, std::vector<std::string>& allowedMoves, const std::string& move)
+std::string processMove(const std::string& move)
 {
 	if (move != "Start")
 		allowedMoves.erase(std::remove(allowedMoves.begin(), allowedMoves.end(), move.substr(0, 2)), allowedMoves.end());
@@ -50,7 +59,7 @@ std::string processMove(std::vector<size_t>& allowedValues, std::vector<std::str
 	return ss.str();
 }
 
-void discardAllowedMove(std::vector<std::string>& allowedMoves, const std::string& cellID)
+void discardAllowedMove(const std::string& cellID)
 {
 	allowedMoves.erase(std::remove(allowedMoves.begin(),
 		allowedMoves.end(),
@@ -97,34 +106,35 @@ int main(int argc, char **argv)
 
 	for (size_t i = 0;i < nrGamesInt;++i)
 	{
-		cout << "Clearing moves" << endl;
-		std::vector<size_t> allowedValues = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
-		cout << "Clearing moves1" << endl;
-		std::vector<std::string> allowedMoves = { "A1", "A2", "A3", "A4", "A5", "A6", "A7", "A8",
+		allowedMoves.clear();
+		for (auto elem : { "A1", "A2", "A3", "A4", "A5", "A6", "A7", "A8",
 			"B1", "B2", "B3", "B4", "B5", "B6", "B7",
 			"C1", "C2", "C3", "C4", "C5", "C6",
 			"D1", "D2", "D3", "D4", "D5",
 			"E1", "E2" ,"E3", "E4",
 			"F1", "F2", "F3",
 			"G1", "G2",
-			"H1" };
-		cout << "DONE!" << endl;
+			"H1" })
+			allowedMoves.push_back(elem);
+		allowedValues.clear();
+		for (auto elem : { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 })
+			allowedValues.push_back(elem);
 		std::string blockedCell1 = receiveData(ConnectSocket, 2);
-		discardAllowedMove(allowedMoves, blockedCell1);
+		discardAllowedMove(blockedCell1);
 		std::string blockedCell2 = receiveData(ConnectSocket, 2);
-		discardAllowedMove(allowedMoves, blockedCell2);
+		discardAllowedMove(blockedCell2);
 		std::string blockedCell3 = receiveData(ConnectSocket, 2);
-		discardAllowedMove(allowedMoves, blockedCell3);
+		discardAllowedMove(blockedCell3);
 		std::string blockedCell4 = receiveData(ConnectSocket, 2);
-		discardAllowedMove(allowedMoves, blockedCell4);
+		discardAllowedMove(blockedCell4);
 		std::string blockedCell5 = receiveData(ConnectSocket, 2);
-		discardAllowedMove(allowedMoves, blockedCell5);
+		discardAllowedMove(blockedCell5);
 
 		std::string move = receiveData(ConnectSocket, 5);
 
 		while (move != "Quit")
 		{
-			string response = processMove(allowedValues, allowedMoves, move);
+			string response = processMove(move);
 			sendData(ConnectSocket, response);
 			move = receiveData(ConnectSocket, 5);
 		}

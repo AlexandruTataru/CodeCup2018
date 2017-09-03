@@ -5,11 +5,14 @@ import random
 import socketserver
 import socket
 import sys
+import time
 from _thread import *
 
 WINDOW_SIZE_X = 800
 WINDOW_SIZE_Y = 700
 CELL_RADIUS = 50
+DELAY = 0.01
+NR_GAMES = 50
 
 RED_COLOR = '#e43326'
 BLUE_COLOR = '#2f41a5'
@@ -105,6 +108,8 @@ def drawField():
         cell.Draw(window)
 
 def chooseRandomBlockedBlocks():
+    for cell in cells:
+        cell.SetType(CELL_TYPE.PLAYABLE)
     alreadyBlocked = []
     while len(alreadyBlocked) < 5:
         idx = random.randrange(0, len(cells), 1)
@@ -114,61 +119,81 @@ def chooseRandomBlockedBlocks():
             cell.SetType(CELL_TYPE.BLOCKED)
 
 def sendDataToClient(conn, data):
+    time.sleep(DELAY)
+    print('Sent data: ' + data);
     conn.send(bytes(data.encode()))
 
 def readDataFromClient(conn):
-    data = conn.recv(1024)
-    return str(data, 'utf-8')
+    data = conn.recv(128)
+    time.sleep(DELAY)
+    dataRead = str(data, 'utf-8')
+    print('Read data: ' + dataRead)
+    return dataRead
 
 def main():
     redSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     redSocket.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
     redSocket.bind(('', 6666))
-    redSocket.listen(10)
+    redSocket.listen(1)
 
     blueSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     blueSocket.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
     blueSocket.bind(('', 6667))
-    blueSocket.listen(10)
+    blueSocket.listen(1)
 
     print('Waiting for RED player')
     redConn, addr = redSocket.accept()
 
-    for cell in cells:
-        if cell.GetType() == CELL_TYPE.BLOCKED:
-            sendDataToClient(redConn, cell.GetLetter())
+    sendDataToClient(redConn, str(NR_GAMES))
     
     print('Waiting for BLUE Player')
     blueConn, addr = blueSocket.accept()
 
-    for cell in cells:
-        if cell.GetType() == CELL_TYPE.BLOCKED:
-            sendDataToClient(blueConn, cell.GetLetter())
+    sendDataToClient(blueConn, str(NR_GAMES))
 
-    sendDataToClient(redConn, "Start")
+    for i in range(0, NR_GAMES):
+        chooseRandomBlockedBlocks()
 
-    NR_MOVES = 15
-    for i in range(0, NR_MOVES):
-        print("Waiting to read from RED player")
-        data = readDataFromClient(redConn)
-        print(data)
-        cellMap[data[0:2]].SetType(CELL_TYPE.RED_PLAYER)
-        cellMap[data[0:2]].SetValue(int(data[3:]))
-        print("Sending move to BLUE player")
-        sendDataToClient(blueConn, data)
-        print("Waiting to read from BLUE player")
-        data = readDataFromClient(blueConn)
-        print(data)
-        cellMap[data[0:2]].SetType(CELL_TYPE.BLUE_PLAYER)
-        cellMap[data[0:2]].SetValue(int(data[3:]))
-        if i != NR_MOVES - 1:
-            print("Sending more to RED player")
-            sendDataToClient(redConn, data)
+        for cell in cells:
+            if cell.GetType() == CELL_TYPE.BLOCKED:
+                sendDataToClient(redConn, cell.GetLetter())
+        
+        for cell in cells:
+            if cell.GetType() == CELL_TYPE.BLOCKED:
+                sendDataToClient(blueConn, cell.GetLetter())
 
-    print("Sending QUIT to RED")
-    sendDataToClient(redConn, "Quit")
-    print("Sending QUIT to BLUE")
-    sendDataToClient(blueConn, "Quit")
+        firstPlayerConn = redConn
+        secondPLayerConn = blueConn
+        if i % 2 == 0:
+            firstPlayerConn = blueConn
+            secondPLayerConn = redConn
+
+        sendDataToClient(firstPlayerConn, "Start")
+
+        NR_MOVES = 15
+        for i in range(0, NR_MOVES):
+            print("Waiting to read from RED player")
+            data = readDataFromClient(firstPlayerConn)
+            print(data)
+            cellMap[data[0:2]].SetType(CELL_TYPE.RED_PLAYER)
+            cellMap[data[0:2]].SetValue(int(data[3:]))
+            print("Sending move to BLUE player")
+            sendDataToClient(secondPLayerConn, data)
+            print("Waiting to read from BLUE player")
+            data = readDataFromClient(secondPLayerConn)
+            print(data)
+            cellMap[data[0:2]].SetType(CELL_TYPE.BLUE_PLAYER)
+            cellMap[data[0:2]].SetValue(int(data[3:]))
+            if i != NR_MOVES - 1:
+                print("Sending more to RED player")
+                sendDataToClient(firstPlayerConn, data)
+
+        print("Sending QUIT to RED")
+        sendDataToClient(firstPlayerConn, "Quit")
+        print("Sending QUIT to BLUE")
+        sendDataToClient(secondPLayerConn, "Quit")
+
+        displayWinner()
 
     redSocket.close()
     blueSocket.close()
@@ -192,8 +217,40 @@ def getNeighbors(cellID):
 
     return neighbors
 
-def displayWinner():
+gamesWonByRed = 0
+gamesWonByBlue = 0
 
+label = Text(Point(WINDOW_SIZE_X * 0.80, 50), "RED - BLUE")
+label.setFace('courier')
+label.setSize(36)
+label.setWidth(WINDOW_SIZE_X)
+label.draw(window)
+
+generalScoreLabel = Text(Point(WINDOW_SIZE_X * 0.80, 90), "0 - 0")
+generalScoreLabel.setFace('courier')
+generalScoreLabel.setSize(36)
+generalScoreLabel.setWidth(WINDOW_SIZE_X)
+generalScoreLabel.draw(window)
+
+winnerLabel = Text(Point(WINDOW_SIZE_X * 0.22, 50), "")
+scoreLabel = Text(Point(WINDOW_SIZE_X * 0.22, 90), "")
+winnerLabel.setFace('courier')
+scoreLabel.setFace('courier')
+winnerLabel.setSize(36)
+scoreLabel.setSize(36)
+winnerLabel.setStyle('bold')
+scoreLabel.setStyle('bold')
+winnerLabel.setWidth(WINDOW_SIZE_X)
+scoreLabel.setWidth(WINDOW_SIZE_X)
+
+winnerLabel.draw(window)
+scoreLabel.draw(window)
+
+def displayWinner():
+    global gamesWonByRed
+    global gamesWonByBlue
+    global winnerLabel
+    global scoreLabel
     redPoints = 0
     bluePoints = 0
 
@@ -205,36 +262,26 @@ def displayWinner():
                     redPoints += neighbor.GetValue()
                 elif neighbor.GetType() == CELL_TYPE.BLUE_PLAYER:
                     bluePoints += neighbor.GetValue()
-
-    winnerLabel = Text(Point(WINDOW_SIZE_X * 0.22, 50), "")
-    scoreLabel = Text(Point(WINDOW_SIZE_X * 0.22, 90), "")
-    winnerLabel.setFace('courier')
-    scoreLabel.setFace('courier')
-    winnerLabel.setSize(36)
-    scoreLabel.setSize(36)
-    winnerLabel.setStyle('bold')
-    scoreLabel.setStyle('bold')
-    winnerLabel.setWidth(WINDOW_SIZE_X)
-    scoreLabel.setWidth(WINDOW_SIZE_X)
     
     if bluePoints > redPoints:
+        gamesWonByBlue = gamesWonByBlue + 1
         winnerLabel.setText("BLUE WON")
         winnerLabel.setFill(BLUE_COLOR)
         scoreLabel.setText(str(bluePoints) + " to " + str(redPoints))
     elif bluePoints < redPoints:
+        gamesWonByRed = gamesWonByRed + 1
         winnerLabel.setText("RED WON")
         winnerLabel.setFill(RED_COLOR)
         scoreLabel.setText(str(redPoints) + " to " + str(bluePoints))
     elif bluePoints == redPoints:
+        gamesWonByBlue = gamesWonByBlue + 1
+        gamesWonByRed = gamesWonByRed + 1
         winnerLabel.setText("DRAW")
         winnerLabel.setFill('black')
         scoreLabel.setText(str(redPoints) + " SAME")
 
-    winnerLabel.draw(window)
-    scoreLabel.draw(window)
+    generalScoreLabel.setText(str(gamesWonByRed) + ' - ' + str(gamesWonByBlue))
 
 if __name__ == "__main__":
     drawField()
-    chooseRandomBlockedBlocks()
     main()
-    displayWinner()

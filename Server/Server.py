@@ -6,13 +6,13 @@ import socketserver
 import socket
 import sys
 import time
-from _thread import *
+import _thread
 
 WINDOW_SIZE_X = 800
 WINDOW_SIZE_Y = 700
 CELL_RADIUS = 50
-DELAY = 0.05
-NR_GAMES = 5
+DELAY = 0
+NR_GAMES = 500
 
 RED_COLOR = '#e43326'
 BLUE_COLOR = '#2f41a5'
@@ -140,75 +140,6 @@ def clearBoard():
     for cell in cells:
         cell.Reset()
 
-def main():
-    redSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    redSocket.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
-    redSocket.bind(('', 6666))
-    redSocket.listen(1)
-
-    blueSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    blueSocket.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
-    blueSocket.bind(('', 6667))
-    blueSocket.listen(1)
-
-    print('Waiting for RED player')
-    redConn, addr = redSocket.accept()
-
-    sendDataToClient(redConn, str(NR_GAMES))
-    
-    print('Waiting for BLUE Player')
-    blueConn, addr = blueSocket.accept()
-
-    sendDataToClient(blueConn, str(NR_GAMES))
-
-    for i in range(0, NR_GAMES):
-        clearBoard()
-        chooseRandomBlockedBlocks()
-
-        for cell in cells:
-            if cell.GetType() == CELL_TYPE.BLOCKED:
-                sendDataToClient(redConn, cell.GetLetter())
-        
-        for cell in cells:
-            if cell.GetType() == CELL_TYPE.BLOCKED:
-                sendDataToClient(blueConn, cell.GetLetter())
-
-        firstPlayerConn = redConn
-        secondPLayerConn = blueConn
-        if i % 2 == 0:
-            firstPlayerConn = blueConn
-            secondPLayerConn = redConn
-
-        sendDataToClient(firstPlayerConn, "Start")
-
-        NR_MOVES = 15
-        for i in range(0, NR_MOVES):
-            print("Waiting to read from RED player")
-            data = readDataFromClient(firstPlayerConn)
-            print(data)
-            cellMap[data[0:2]].SetType(CELL_TYPE.RED_PLAYER)
-            cellMap[data[0:2]].SetValue(int(data[3:]))
-            print("Sending move to BLUE player")
-            sendDataToClient(secondPLayerConn, data)
-            print("Waiting to read from BLUE player")
-            data = readDataFromClient(secondPLayerConn)
-            print(data)
-            cellMap[data[0:2]].SetType(CELL_TYPE.BLUE_PLAYER)
-            cellMap[data[0:2]].SetValue(int(data[3:]))
-            if i != NR_MOVES - 1:
-                print("Sending more to RED player")
-                sendDataToClient(firstPlayerConn, data)
-
-        print("Sending QUIT to RED")
-        sendDataToClient(firstPlayerConn, "Quit")
-        print("Sending QUIT to BLUE")
-        sendDataToClient(secondPLayerConn, "Quit")
-
-        displayWinner()
-
-    redSocket.close()
-    blueSocket.close()
-
 def getNeighbors(cellID):
     letter = cellID[0]
     number = int(cellID[1])
@@ -293,6 +224,83 @@ def displayWinner():
 
     generalScoreLabel.setText(str(gamesWonByRed) + ' - ' + str(gamesWonByBlue))
 
+def runServer():
+    redSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    redSocket.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
+    redSocket.bind(('', 6666))
+    redSocket.listen(1)
+
+    blueSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    blueSocket.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
+    blueSocket.bind(('', 6667))
+    blueSocket.listen(1)
+
+    print('Waiting for RED player')
+    redConn, addr = redSocket.accept()
+
+    sendDataToClient(redConn, str(NR_GAMES))
+    
+    print('Waiting for BLUE Player')
+    blueConn, addr = blueSocket.accept()
+
+    sendDataToClient(blueConn, str(NR_GAMES))
+
+    for i in range(1, NR_GAMES + 1):
+        clearBoard()
+        chooseRandomBlockedBlocks()
+
+        for cell in cells:
+            if cell.GetType() == CELL_TYPE.BLOCKED:
+                sendDataToClient(redConn, cell.GetLetter())
+        
+        for cell in cells:
+            if cell.GetType() == CELL_TYPE.BLOCKED:
+                sendDataToClient(blueConn, cell.GetLetter())
+
+        firstPlayerConn = redConn
+        secondPLayerConn = blueConn
+        firstPlayerColor = CELL_TYPE.RED_PLAYER
+        secondPlayerColor = CELL_TYPE.BLUE_PLAYER
+        if i % 2 == 0:
+            firstPlayerConn = blueConn
+            secondPLayerConn = redConn
+            firstPlayerColor = CELL_TYPE.BLUE_PLAYER
+            secondPlayerColor = CELL_TYPE.RED_PLAYER
+
+        sendDataToClient(firstPlayerConn, "Start")
+
+        NR_MOVES = 15
+        for i in range(0, NR_MOVES):
+            print("Waiting to read from RED player")
+            data = readDataFromClient(firstPlayerConn)
+            print(data)
+            cellMap[data[0:2]].SetType(firstPlayerColor)
+            cellMap[data[0:2]].SetValue(int(data[3:]))
+            print("Sending move to BLUE player")
+            sendDataToClient(secondPLayerConn, data)
+            print("Waiting to read from BLUE player")
+            data = readDataFromClient(secondPLayerConn)
+            print(data)
+            cellMap[data[0:2]].SetType(secondPlayerColor)
+            cellMap[data[0:2]].SetValue(int(data[3:]))
+            if i != NR_MOVES - 1:
+                print("Sending more to RED player")
+                sendDataToClient(firstPlayerConn, data)
+
+        print("Sending QUIT to RED")
+        sendDataToClient(firstPlayerConn, "Quit")
+        print("Sending QUIT to BLUE")
+        sendDataToClient(secondPLayerConn, "Quit")
+
+        displayWinner()
+
+    redSocket.close()
+    blueSocket.close()
+
+def main():
+    _thread.start_new_thread( runServer, () )
+    window.mainloop()
+    
 if __name__ == "__main__":
     drawField()
     main()

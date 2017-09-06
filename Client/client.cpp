@@ -107,13 +107,15 @@ std::string processMove(const std::string& move)
 		for (auto neighborIDs : neighbors)
 		{
 			Cell *cell = cellMapping[neighborIDs];
-			if (cell->cellType == PLAYABLE) cellScore += 15;
+			if (cell->cellType == PLAYABLE) cellScore += 16;
 			else if (cell->cellType == ENEMY) cellScore -= cell->value;
 			else if (cell->cellType == OWN) cellScore += cell->value;
-			if (cellScore > bestScore)
-			{
-				bestCellID = cellID;
-			}
+		}
+		cout << cellID << " has a score of " << cellScore << endl;
+		if (cellScore > bestScore)
+		{
+			bestCellID = cellID;
+			bestScore = cellScore;
 		}
 	}
 
@@ -220,7 +222,7 @@ int main(int argc, char **argv)
 	}
 
 	freeaddrinfo(result);
-
+	cout << "Custom algo 1" << endl;
 	int nrGames = std::stoi(receiveData(ConnectSocket, 10));
 	cout << "We will be playing " << nrGames << " games" << endl;
 

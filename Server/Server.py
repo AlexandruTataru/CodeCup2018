@@ -12,7 +12,7 @@ WINDOW_SIZE_X = 800
 WINDOW_SIZE_Y = 700
 CELL_RADIUS = 50
 DELAY = 0
-NR_GAMES = 500
+NR_GAMES = 50
 
 RED_COLOR = '#e43326'
 BLUE_COLOR = '#2f41a5'
@@ -20,6 +20,13 @@ NORMAL_COLOR = '#dddddd'
 BLOCKED_COLOR = '#694538'
 
 window = GraphWin("CodeCup 2018 Server", WINDOW_SIZE_X, WINDOW_SIZE_Y)
+
+#Server related messages
+MESSAGE_START_GAME = 'Start'
+MESSAGE_END_GAME = 'Quit'
+
+cells = []
+cellMap = {}
 
 class CELL_TYPE(Enum):
     PLAYABLE = 0
@@ -83,9 +90,6 @@ class Cell:
     def Reset(self):
         self.label.setText(self.letter)
         self.SetType(CELL_TYPE.PLAYABLE)
-
-cells = []
-cellMap = {}
 
 def drawField():
     letter = 'A'
@@ -159,18 +163,18 @@ def getNeighbors(cellID):
 
     return neighbors
 
-gamesWonByRed = 0
-gamesWonByBlue = 0
+redTotalScore = 0
+blueTotalScore = 0
 
-label = Text(Point(WINDOW_SIZE_X * 0.80, 50), "RED - BLUE")
+label = Text(Point(WINDOW_SIZE_X * 0.80, 50), "Red - Blue")
 label.setFace('courier')
-label.setSize(36)
+label.setSize(24)
 label.setWidth(WINDOW_SIZE_X)
 label.draw(window)
 
 generalScoreLabel = Text(Point(WINDOW_SIZE_X * 0.80, 90), "0 - 0")
 generalScoreLabel.setFace('courier')
-generalScoreLabel.setSize(36)
+generalScoreLabel.setSize(24)
 generalScoreLabel.setWidth(WINDOW_SIZE_X)
 generalScoreLabel.draw(window)
 
@@ -188,9 +192,9 @@ scoreLabel.setWidth(WINDOW_SIZE_X)
 winnerLabel.draw(window)
 scoreLabel.draw(window)
 
-def displayWinner():
-    global gamesWonByRed
-    global gamesWonByBlue
+def updateScoring():
+    global redTotalScore
+    global blueTotalScore
     global winnerLabel
     global scoreLabel
     redPoints = 0
@@ -204,25 +208,28 @@ def displayWinner():
                     redPoints += neighbor.GetValue()
                 elif neighbor.GetType() == CELL_TYPE.BLUE_PLAYER:
                     bluePoints += neighbor.GetValue()
+
+    redFinalPoints = 75 - bluePoints + redPoints
+    blueFinalPoints = 75 - redPoints + bluePoints
     
-    if bluePoints > redPoints:
-        gamesWonByBlue = gamesWonByBlue + 1
+    if blueFinalPoints > redFinalPoints:
+        blueTotalScore += blueFinalPoints
         winnerLabel.setText("BLUE WON")
         winnerLabel.setFill(BLUE_COLOR)
-        scoreLabel.setText(str(bluePoints) + " to " + str(redPoints))
-    elif bluePoints < redPoints:
-        gamesWonByRed = gamesWonByRed + 1
+        scoreLabel.setText(str(blueFinalPoints) + " to " + str(redFinalPoints))
+    elif blueFinalPoints < redFinalPoints:
+        redTotalScore += redFinalPoints
         winnerLabel.setText("RED WON")
         winnerLabel.setFill(RED_COLOR)
-        scoreLabel.setText(str(redPoints) + " to " + str(bluePoints))
-    elif bluePoints == redPoints:
-        gamesWonByBlue = gamesWonByBlue + 1
-        gamesWonByRed = gamesWonByRed + 1
+        scoreLabel.setText(str(redFinalPoints) + " to " + str(blueFinalPoints))
+    elif blueFinalPoints == redFinalPoints:
+        redTotalScore += redFinalPoints
+        blueTotalScore += blueFinalPoints
         winnerLabel.setText("DRAW")
         winnerLabel.setFill('black')
-        scoreLabel.setText(str(redPoints) + " SAME")
+        scoreLabel.setText(str(redFinalPoints) + " SAME")
 
-    generalScoreLabel.setText(str(gamesWonByRed) + ' - ' + str(gamesWonByBlue))
+    generalScoreLabel.setText(str(redTotalScore) + ' - ' + str(blueTotalScore))
 
 def runServer():
     redSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -258,41 +265,41 @@ def runServer():
                 sendDataToClient(blueConn, cell.GetLetter())
 
         firstPlayerConn = redConn
-        secondPLayerConn = blueConn
+        secondPlayerConn = blueConn
         firstPlayerColor = CELL_TYPE.RED_PLAYER
         secondPlayerColor = CELL_TYPE.BLUE_PLAYER
         if i % 2 == 0:
             firstPlayerConn = blueConn
-            secondPLayerConn = redConn
+            secondPlayerConn = redConn
             firstPlayerColor = CELL_TYPE.BLUE_PLAYER
             secondPlayerColor = CELL_TYPE.RED_PLAYER
 
-        sendDataToClient(firstPlayerConn, "Start")
+        sendDataToClient(firstPlayerConn, MESSAGE_START_GAME)
 
         NR_MOVES = 15
         for i in range(0, NR_MOVES):
-            print("Waiting to read from RED player")
+            print('Waiting to read from ' + firstPlayerColor.name)
             data = readDataFromClient(firstPlayerConn)
             print(data)
             cellMap[data[0:2]].SetType(firstPlayerColor)
             cellMap[data[0:2]].SetValue(int(data[3:]))
-            print("Sending move to BLUE player")
-            sendDataToClient(secondPLayerConn, data)
-            print("Waiting to read from BLUE player")
-            data = readDataFromClient(secondPLayerConn)
+            print('Sending move to ' + secondPlayerColor.name)
+            sendDataToClient(secondPlayerConn, data)
+            print('Waiting to read from ' + secondPlayerColor.name)
+            data = readDataFromClient(secondPlayerConn)
             print(data)
             cellMap[data[0:2]].SetType(secondPlayerColor)
             cellMap[data[0:2]].SetValue(int(data[3:]))
             if i != NR_MOVES - 1:
-                print("Sending more to RED player")
+                print('Sending more to ' + firstPlayerColor.name)
                 sendDataToClient(firstPlayerConn, data)
 
-        print("Sending QUIT to RED")
-        sendDataToClient(firstPlayerConn, "Quit")
-        print("Sending QUIT to BLUE")
-        sendDataToClient(secondPLayerConn, "Quit")
+        print("Sending QUIT to " + firstPlayerColor.name)
+        sendDataToClient(firstPlayerConn, MESSAGE_END_GAME)
+        print("Sending QUIT to " + secondPlayerColor.name)
+        sendDataToClient(secondPlayerConn, MESSAGE_END_GAME)
 
-        displayWinner()
+        updateScoring()
 
     redSocket.close()
     blueSocket.close()

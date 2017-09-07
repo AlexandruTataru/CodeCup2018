@@ -12,7 +12,7 @@ WINDOW_SIZE_X = 800
 WINDOW_SIZE_Y = 700
 CELL_RADIUS = 50
 DELAY = 0
-NR_GAMES = 50
+NR_GAMES = 200
 
 RED_COLOR = '#e43326'
 BLUE_COLOR = '#2f41a5'
@@ -163,6 +163,8 @@ def getNeighbors(cellID):
 
     return neighbors
 
+redScore = 0
+blueScore = 0
 redTotalScore = 0
 blueTotalScore = 0
 
@@ -177,6 +179,12 @@ generalScoreLabel.setFace('courier')
 generalScoreLabel.setSize(24)
 generalScoreLabel.setWidth(WINDOW_SIZE_X)
 generalScoreLabel.draw(window)
+
+victoryScoreLabel = Text(Point(WINDOW_SIZE_X * 0.80, 130), "0 - 0")
+victoryScoreLabel.setFace('courier')
+victoryScoreLabel.setSize(24)
+victoryScoreLabel.setWidth(WINDOW_SIZE_X)
+victoryScoreLabel.draw(window)
 
 winnerLabel = Text(Point(WINDOW_SIZE_X * 0.22, 50), "")
 scoreLabel = Text(Point(WINDOW_SIZE_X * 0.22, 90), "")
@@ -193,6 +201,8 @@ winnerLabel.draw(window)
 scoreLabel.draw(window)
 
 def updateScoring():
+    global redScore
+    global blueScore
     global redTotalScore
     global blueTotalScore
     global winnerLabel
@@ -213,11 +223,13 @@ def updateScoring():
     blueFinalPoints = 75 - redPoints + bluePoints
     
     if blueFinalPoints > redFinalPoints:
+        blueScore += 1
         blueTotalScore += blueFinalPoints
         winnerLabel.setText("BLUE WON")
         winnerLabel.setFill(BLUE_COLOR)
         scoreLabel.setText(str(blueFinalPoints) + " to " + str(redFinalPoints))
     elif blueFinalPoints < redFinalPoints:
+        redScore += 1
         redTotalScore += redFinalPoints
         winnerLabel.setText("RED WON")
         winnerLabel.setFill(RED_COLOR)
@@ -230,6 +242,7 @@ def updateScoring():
         scoreLabel.setText(str(redFinalPoints) + " SAME")
 
     generalScoreLabel.setText(str(redTotalScore) + ' - ' + str(blueTotalScore))
+    victoryScoreLabel.setText(str(redScore) + ' - ' + str(blueScore))
 
 def runServer():
     redSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

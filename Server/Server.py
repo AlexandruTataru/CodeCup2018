@@ -117,6 +117,9 @@ def readHistory():
     
     clearBoard()
     clearScore()
+
+    FIRST_PLAYER_COLOR = CELL_TYPE.RED_PLAYER
+    SECOND_PLAYER_COLOR = CELL_TYPE.BLUE_PLAYER
     
     filePath = filedialog.askopenfilename()
     print('Selected file path: ' + filePath)

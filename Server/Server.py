@@ -1,29 +1,32 @@
 from graphics import *
 from enum import Enum
+from pynput import keyboard
 import math
 import random
 import socketserver
 import socket
 import sys
+import datetime
 import time
 import _thread
 
-RUN_IN_OFFLINE_MODE = True
+RUN_IN_OFFLINE_MODE = False
 HISTORY_LOCATION = 'history.run'
 history = []
 HISTORY_INDEX = 0
 
-DEBUG_WINDOW_EXTENSION_Y = 100
+TIMESTAMP = datetime.datetime.fromtimestamp(time.time()).strftime('%M')
+RED_FOLDER = 'RED_WINS' + TIMESTAMP
+BLUE_FOLDER = 'BLUE_WINS' + TIMESTAMP
+GAME_NR = 1
+CURRENT_FILE_NAME = None
 
 WINDOW_SIZE_X = 800
 WINDOW_SIZE_Y = 700
 
-if RUN_IN_OFFLINE_MODE:
-    WINDOW_SIZE_Y += DEBUG_WINDOW_EXTENSION_Y
-
 CELL_RADIUS = 50
-DELAY = 0.5
-NR_GAMES = 1
+DELAY = 0
+NR_GAMES = 10
 
 RED_COLOR = '#e43326'
 BLUE_COLOR = '#2f41a5'
@@ -109,7 +112,7 @@ def readHistory():
     history = [x.strip() for x in history]
 
 def appendToHistory(data):
-    file = open(HISTORY_LOCATION, 'a')
+    file = open(CURRENT_FILE_NAME, 'a')
     file.write(data + '\n')
     file.close()
 
@@ -140,13 +143,6 @@ def drawField():
         cell.Draw(window)
 
 def chooseRandomBlockedBlocks():
-    if RUN_IN_OFFLINE_MODE:
-        global HISTORY_INDEX
-        for i in range(0, 5):
-            cellMap[history[HISTORY_INDEX]].SetType(CELL_TYPE.BLOCKED)
-            HISTORY_INDEX += 1
-        return
-
     for cell in cells:
         cell.SetType(CELL_TYPE.PLAYABLE)
     alreadyBlocked = []
@@ -159,26 +155,22 @@ def chooseRandomBlockedBlocks():
             appendToHistory(cell.GetLetter())
 
 def sendDataToClient(conn, data):
-    time.sleep(DELAY)
-    if RUN_IN_OFFLINE_MODE:
-        return
     print('Sent data: ' + data);
     conn.send(bytes(data.encode()))
 
 def readDataFromClient(conn):
-    time.sleep(DELAY)
-    if RUN_IN_OFFLINE_MODE:
-        global HISTORY_INDEX
-        entry = history[HISTORY_INDEX]
-        HISTORY_INDEX += 1
-        return entry;
     data = conn.recv(128)
+    time.sleep(DELAY)
     dataRead = str(data, 'utf-8')
     print('Read data: ' + dataRead)
     appendToHistory(dataRead)
     return dataRead
 
 def clearBoard():
+    global GAME_NR
+    global CURRENT_FILE_NAME
+    CURRENT_FILE_NAME = 'GAME' + str(GAME_NR)
+    GAME_NR += 1
     for cell in cells:
         cell.Reset()
 
@@ -259,19 +251,22 @@ def updateScoring():
 
     redFinalPoints = 75 - bluePoints + redPoints
     blueFinalPoints = 75 - redPoints + bluePoints
+
+    redTotalScore += redFinalPoints
+    blueTotalScore += blueFinalPoints
     
     if blueFinalPoints > redFinalPoints:
         blueScore += 1
-        blueTotalScore += blueFinalPoints
         winnerLabel.setText("BLUE WON")
         winnerLabel.setFill(BLUE_COLOR)
         scoreLabel.setText(str(blueFinalPoints) + " to " + str(redFinalPoints))
+        os.rename(CURRENT_FILE_NAME, BLUE_FOLDER + '\\' + CURRENT_FILE_NAME)
     elif blueFinalPoints < redFinalPoints:
         redScore += 1
-        redTotalScore += redFinalPoints
         winnerLabel.setText("RED WON")
         winnerLabel.setFill(RED_COLOR)
         scoreLabel.setText(str(redFinalPoints) + " to " + str(blueFinalPoints))
+        os.rename(CURRENT_FILE_NAME, RED_FOLDER + '\\' + CURRENT_FILE_NAME)
     elif blueFinalPoints == redFinalPoints:
         redTotalScore += redFinalPoints
         blueTotalScore += blueFinalPoints
@@ -283,34 +278,32 @@ def updateScoring():
     victoryScoreLabel.setText(str(redScore) + ' - ' + str(blueScore))
 
 def runServer():
-    if not RUN_IN_OFFLINE_MODE:
-        redSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        redSocket.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
-        redSocket.bind(('', 6666))
-        redSocket.listen(1)
+    os.makedirs(RED_FOLDER)
+    os.makedirs(BLUE_FOLDER)
+    
+    redSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    redSocket.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
+    redSocket.bind(('', 6666))
+    redSocket.listen(1)
 
-        blueSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        blueSocket.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
-        blueSocket.bind(('', 6667))
-        blueSocket.listen(1)
+    blueSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    blueSocket.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
+    blueSocket.bind(('', 6667))
+    blueSocket.listen(1)
 
-        print('Waiting for RED player')
-        redConn, addr = redSocket.accept()
+    print('Waiting for RED player')
+    redConn, addr = redSocket.accept()
 
-        sendDataToClient(redConn, str(NR_GAMES))
-        
-        print('Waiting for BLUE Player')
-        blueConn, addr = blueSocket.accept()
+    sendDataToClient(redConn, str(NR_GAMES))
+	
+    print('Waiting for BLUE Player')
+    blueConn, addr = blueSocket.accept()
 
-        sendDataToClient(blueConn, str(NR_GAMES))
+    sendDataToClient(blueConn, str(NR_GAMES))
 
     for i in range(1, NR_GAMES + 1):
         clearBoard()
         chooseRandomBlockedBlocks()
-
-        if RUN_IN_OFFLINE_MODE:
-            redConn = None
-            blueConn = None
 
         for cell in cells:
             if cell.GetType() == CELL_TYPE.BLOCKED:
@@ -331,6 +324,7 @@ def runServer():
             secondPlayerColor = CELL_TYPE.RED_PLAYER
 
         sendDataToClient(firstPlayerConn, MESSAGE_START_GAME)
+        appendToHistory(firstPlayerColor.name)
 
         NR_MOVES = 15
         for i in range(0, NR_MOVES):                
@@ -357,15 +351,25 @@ def runServer():
 
         updateScoring()
 
-    if not RUN_IN_OFFLINE_MODE:
-        redSocket.close()
-        blueSocket.close()
+    redSocket.close()
+    blueSocket.close()
+
+def on_press(key):
+    try: k = key.char
+    except: k = key.name
+    print(k)
+    if k == 'right':
+        print(1)
+    elif k == 'left':
+        print(2)
 
 def main():
     _thread.start_new_thread( runServer, () )
     window.mainloop()
     
 if __name__ == "__main__":
+    lis = keyboard.Listener(on_press=on_press)
+    lis.start()
     drawField()
     if RUN_IN_OFFLINE_MODE:
         readHistory()

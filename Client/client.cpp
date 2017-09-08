@@ -25,7 +25,10 @@
 using namespace std;
 
 std::vector<std::string> allowedMoves;
+std::vector<std::string> allowedMovesReference;
 std::vector<size_t> allowedValues;
+
+size_t MOVES_LEFT = 15;
 
 enum CELL_TYPE
 {
@@ -77,7 +80,7 @@ std::vector<std::string> getNeighborsIDs(const std::string& id)
 	neighborKeys[4][0] = char(letter + 1); neighborKeys[4][1] = char(48 + number - 1);
 	neighborKeys[5][0] = char(letter + 1); neighborKeys[5][1] = char(48 + number);
 
-	for (auto cellID : allowedMoves)
+	for (auto cellID : allowedMovesReference)
 	{
 		if ((std::find(neighborKeys.begin(), neighborKeys.end(), cellID) != neighborKeys.end()) &&
 			cellMapping[cellID]->cellType != BLOCKED)
@@ -100,6 +103,8 @@ std::string processMove(const std::string& move)
 
 	int bestScore = -9000;
 	std::string bestCellID = allowedMoves[0];
+	bool loosingCallDetected = false;
+	std::string loosingCellID;
 	for (auto cellID : allowedMoves)
 	{
 		std::vector<std::string> neighbors = getNeighborsIDs(cellID);
@@ -111,7 +116,13 @@ std::string processMove(const std::string& move)
 			else if (cell->cellType == ENEMY) cellScore -= cell->value;
 			else if (cell->cellType == OWN) cellScore += cell->value;
 		}
-		cout << cellID << " has a score of " << cellScore << endl;
+
+		if (cellScore < 0)
+		{
+			loosingCallDetected = true;
+			loosingCellID = cellID;
+		}
+
 		if (cellScore > bestScore)
 		{
 			bestCellID = cellID;
@@ -119,14 +130,29 @@ std::string processMove(const std::string& move)
 		}
 	}
 
-	std::string cellID = bestCellID;
-	size_t cellValue = allowedValues[allowedValues.size() - 1];
+	std::string cellID = "";
+	size_t cellValue = -1;
+
+	if (loosingCallDetected)
+	{
+		cellID = loosingCellID;
+		cellValue = allowedValues[0];
+	}
+	else
+	{
+		cellID = bestCellID;
+		cellValue = allowedValues[allowedValues.size() - 1];
+	}
+
+	cellMapping[cellID]->cellType = OWN;
+	cellMapping[cellID]->value = cellValue;
 	std::stringstream ss;
 	ss << cellID;
 	ss << "=";
 	ss << cellValue;
 	allowedMoves.erase(std::remove(allowedMoves.begin(), allowedMoves.end(), cellID), allowedMoves.end());
 	allowedValues.erase(std::remove(allowedValues.begin(), allowedValues.end(), cellValue), allowedValues.end());
+	--MOVES_LEFT;
 	return ss.str();
 }
 
@@ -158,12 +184,18 @@ void discardAllowedMove(const std::string& cellID)
 		allowedMoves.end(),
 		cellID),
 		allowedMoves.end());
+	allowedMovesReference.erase(std::remove(allowedMovesReference.begin(),
+		allowedMovesReference.end(),
+		cellID),
+		allowedMovesReference.end());
 	cellMapping[cellID]->cellType = BLOCKED;
 }
 
 void prepareNewGame()
 {
+	MOVES_LEFT = 15;
 	allowedMoves.clear();
+	allowedMovesReference.clear();
 	for (auto elem : { "A1", "A2", "A3", "A4", "A5", "A6", "A7", "A8",
 		"B1", "B2", "B3", "B4", "B5", "B6", "B7",
 		"C1", "C2", "C3", "C4", "C5", "C6",
@@ -172,7 +204,11 @@ void prepareNewGame()
 		"F1", "F2", "F3",
 		"G1", "G2",
 		"H1" })
+	{
 		allowedMoves.push_back(elem);
+		allowedMovesReference.push_back(elem);
+	}
+
 	allowedValues.clear();
 	for (auto elem : { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 })
 		allowedValues.push_back(elem);

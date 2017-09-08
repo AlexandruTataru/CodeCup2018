@@ -27,6 +27,7 @@ using namespace std;
 std::vector<std::string> allowedMoves;
 std::vector<std::string> allowedMovesReference;
 std::vector<size_t> allowedValues;
+std::vector<size_t> enemyLeftMoves;
 
 size_t MOVES_LEFT = 15;
 
@@ -43,8 +44,9 @@ struct Cell
 	CELL_TYPE cellType;
 	size_t value;
 	std::vector<Cell*> neighbors;
+	int compoundValue;
 
-	Cell() : cellType(PLAYABLE), value(0) {}
+	Cell() : cellType(PLAYABLE), value(0), compoundValue(0) {}
 };
 
 std::map<std::string, Cell*> cellMapping;
@@ -82,8 +84,8 @@ std::vector<std::string> getNeighborsIDs(const std::string& id)
 
 	for (auto cellID : allowedMovesReference)
 	{
-		if ((std::find(neighborKeys.begin(), neighborKeys.end(), cellID) != neighborKeys.end()) &&
-			cellMapping[cellID]->cellType != BLOCKED)
+		if ((std::find(neighborKeys.begin(), neighborKeys.end(), cellID) != neighborKeys.end())
+			/* && cellMapping[cellID]->cellType != BLOCKED */)
 			neighbors.push_back(cellID);
 	}
 
@@ -97,14 +99,27 @@ std::string processMove(const std::string& move)
 		std::string cellID = move.substr(0, 2);
 		size_t cellValue = std::stoi(move.substr(3));
 		allowedMoves.erase(std::remove(allowedMoves.begin(), allowedMoves.end(), cellID), allowedMoves.end());
+		enemyLeftMoves.erase(std::remove(enemyLeftMoves.begin(),
+			enemyLeftMoves.end(),
+			cellValue),
+			enemyLeftMoves.end());
 		cellMapping[cellID]->value = cellValue;
 		cellMapping[cellID]->cellType = ENEMY;
+
+		std::vector<std::string> neighbors = getNeighborsIDs(cellID);
+		for (auto neighborIDs : neighbors)
+		{
+			Cell *cell = cellMapping[neighborIDs];
+			if (cell->cellType == PLAYABLE)
+				cell->compoundValue -= cellValue;
+		}
 	}
 
 	int bestScore = -9000;
 	std::string bestCellID = allowedMoves[0];
-	bool loosingCallDetected = false;
+	bool loosingCellDetected = false;
 	std::string loosingCellID;
+	size_t maxAvailableToken = allowedValues[allowedValues.size() - 1];;
 	for (auto cellID : allowedMoves)
 	{
 		std::vector<std::string> neighbors = getNeighborsIDs(cellID);
@@ -112,14 +127,12 @@ std::string processMove(const std::string& move)
 		for (auto neighborIDs : neighbors)
 		{
 			Cell *cell = cellMapping[neighborIDs];
-			if (cell->cellType == PLAYABLE) cellScore += 16;
-			else if (cell->cellType == ENEMY) cellScore -= cell->value;
-			else if (cell->cellType == OWN) cellScore += cell->value;
+			if (cell->cellType == PLAYABLE) cellScore += (maxAvailableToken + cell->compoundValue);
 		}
-
+		cout << "Cell " << cellID << " has a score of " << cellScore << endl;
 		if (cellScore < 0)
 		{
-			loosingCallDetected = true;
+			loosingCellDetected = true;
 			loosingCellID = cellID;
 		}
 
@@ -133,7 +146,7 @@ std::string processMove(const std::string& move)
 	std::string cellID = "";
 	size_t cellValue = -1;
 
-	if (loosingCallDetected)
+	if (loosingCellDetected && MOVES_LEFT <= 6)
 	{
 		cellID = loosingCellID;
 		cellValue = allowedValues[0];
@@ -142,6 +155,13 @@ std::string processMove(const std::string& move)
 	{
 		cellID = bestCellID;
 		cellValue = allowedValues[allowedValues.size() - 1];
+	}
+
+	std::vector<std::string> neighbors = getNeighborsIDs(cellID);
+	for (auto neighborID : neighbors)
+	{
+		Cell *cell = cellMapping[neighborID];
+		cell->compoundValue += cellValue;
 	}
 
 	cellMapping[cellID]->cellType = OWN;
@@ -210,8 +230,12 @@ void prepareNewGame()
 	}
 
 	allowedValues.clear();
+	enemyLeftMoves.clear();
 	for (auto elem : { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 })
+	{
 		allowedValues.push_back(elem);
+		enemyLeftMoves.push_back(elem);
+	}
 
 	for (auto cell : cellMapping) delete cell.second;
 	cellMapping.clear();
@@ -242,7 +266,7 @@ int main(int argc, char **argv)
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_protocol = IPPROTO_TCP;
 
-	getaddrinfo("localhost", argv[1], &hints, &result);
+	getaddrinfo("localhost", "6666", &hints, &result);
 	srand(time(NULL));
 
 	for (ptr = result; ptr != NULL; ptr = ptr->ai_next) {

@@ -12,14 +12,14 @@ import _thread
 import tkinter as tk
 from tkinter import filedialog
 
-RUN_IN_OFFLINE_MODE = False
+RUN_IN_ONLINE_MODE = False
 history = []
 HISTORY_INDEX = -1
 
-TIMESTAMP = datetime.datetime.fromtimestamp(time.time()).strftime('_%H_%M_%S')
-RED_FOLDER = 'RED_WINS' + TIMESTAMP
-BLUE_FOLDER = 'BLUE_WINS' + TIMESTAMP
-GAME_NR = 1
+TIMESTAMP = None
+RED_FOLDER = None
+BLUE_FOLDER = None
+GAME_NR = 0
 CURRENT_FILE_NAME = None
 
 WINDOW_SIZE_X = 800
@@ -116,6 +116,7 @@ def readHistory():
     global HISTORY_INDEX
     
     clearBoard()
+    clearScore()
     
     filePath = filedialog.askopenfilename()
     print('Selected file path: ' + filePath)
@@ -221,6 +222,7 @@ def readDataFromClient(conn):
 def clearBoard():
     global GAME_NR
     global CURRENT_FILE_NAME
+    
     CURRENT_FILE_NAME = 'GAME' + str(GAME_NR)
     GAME_NR += 1
     for cell in cells:
@@ -282,6 +284,27 @@ scoreLabel.setWidth(WINDOW_SIZE_X)
 winnerLabel.draw(window)
 scoreLabel.draw(window)
 
+def clearScore():
+    global redScore
+    global blueScore
+    global redTotalScore
+    global blueTotalScore
+    global generalScoreLabel
+    global victoryScoreLabel
+    global winnerLabel
+    global scoreLabel
+
+    redScore = 0
+    blueScore = 0
+    redTotalScore = 0
+    blueTotalScore = 0
+    
+    generalScoreLabel.setText("0 - 0")
+    victoryScoreLabel.setText("0 - 0")
+
+    winnerLabel.setText("")
+    scoreLabel.setText("")
+
 def updateScoring():
     global redScore
     global blueScore
@@ -332,6 +355,28 @@ def updateScoring():
 def runServer():
     global FIRST_PLAYER_COLOR
     global SECOND_PLAYER_COLOR
+    global RUN_IN_ONLINE_MODE
+    global TIMESTAMP
+    global RED_FOLDER
+    global BLUE_FOLDER
+    global GAME_NR
+    global CURRENT_FILE_NAME
+    global FIRST_PLAYER_COLOR
+    global SECOND_PLAYER_COLOR
+
+    TIMESTAMP = datetime.datetime.fromtimestamp(time.time()).strftime('_%H_%M_%S')
+    RED_FOLDER = 'RED_WINS' + TIMESTAMP
+    BLUE_FOLDER = 'BLUE_WINS' + TIMESTAMP
+    GAME_NR = 1
+    CURRENT_FILE_NAME = None
+
+    FIRST_PLAYER_COLOR = CELL_TYPE.RED_PLAYER
+    SECOND_PLAYER_COLOR = CELL_TYPE.BLUE_PLAYER
+
+    RUN_IN_ONLINE_MODE = True
+
+    clearBoard()
+    clearScore()
     
     os.makedirs(RED_FOLDER)
     os.makedirs(BLUE_FOLDER)
@@ -409,11 +454,14 @@ def runServer():
     redSocket.close()
     blueSocket.close()
 
+    RUN_IN_ONLINE_MODE = False
+    print('Press s to start server, l to read file ...')
+
 def on_press(key):
     try: k = key.char
     except: k = key.name
     print(k)
-    if RUN_IN_OFFLINE_MODE:
+    if not RUN_IN_ONLINE_MODE:
         if k == 'right':
             if HISTORY_INDEX >= 0 and HISTORY_INDEX < 30:
                 moveFoward()
@@ -422,11 +470,13 @@ def on_press(key):
                 moveBackward()
         elif k == 'l':
             readHistory()
+        elif k == 's':
+            _thread.start_new_thread( runServer, () )
+        elif k == 'l':
+            readHistory()
 
 def main():
-    if not RUN_IN_OFFLINE_MODE:
-        _thread.start_new_thread( runServer, () )
-        
+    print('Press s to start server, l to read file ...')
     window.mainloop()
     
 if __name__ == "__main__":

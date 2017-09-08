@@ -27,7 +27,7 @@ WINDOW_SIZE_Y = 700
 
 CELL_RADIUS = 50
 DELAY = 0
-NR_GAMES = 2
+NR_GAMES = 200
 
 RED_COLOR = '#e43326'
 BLUE_COLOR = '#2f41a5'
@@ -370,6 +370,8 @@ def runServer():
 
         firstPlayerConn = redConn
         secondPlayerConn = blueConn
+        FIRST_PLAYER_COLOR = CELL_TYPE.RED_PLAYER
+        SECOND_PLAYER_COLOR = CELL_TYPE.BLUE_PLAYER
         if i % 2 == 0:
             firstPlayerConn = blueConn
             secondPlayerConn = redConn

@@ -9,13 +9,14 @@ import sys
 import datetime
 import time
 import _thread
+import tkinter as tk
+from tkinter import filedialog
 
 RUN_IN_OFFLINE_MODE = False
-HISTORY_LOCATION = 'history.run'
 history = []
-HISTORY_INDEX = 0
+HISTORY_INDEX = -1
 
-TIMESTAMP = datetime.datetime.fromtimestamp(time.time()).strftime('%M')
+TIMESTAMP = datetime.datetime.fromtimestamp(time.time()).strftime('_%H_%M_%S')
 RED_FOLDER = 'RED_WINS' + TIMESTAMP
 BLUE_FOLDER = 'BLUE_WINS' + TIMESTAMP
 GAME_NR = 1
@@ -26,7 +27,7 @@ WINDOW_SIZE_Y = 700
 
 CELL_RADIUS = 50
 DELAY = 0
-NR_GAMES = 10
+NR_GAMES = 2
 
 RED_COLOR = '#e43326'
 BLUE_COLOR = '#2f41a5'
@@ -47,6 +48,9 @@ class CELL_TYPE(Enum):
     BLOCKED = 1
     RED_PLAYER = 2
     BLUE_PLAYER = 3
+
+FIRST_PLAYER_COLOR = CELL_TYPE.RED_PLAYER
+SECOND_PLAYER_COLOR = CELL_TYPE.BLUE_PLAYER
 
 class Cell:
 
@@ -107,9 +111,57 @@ class Cell:
 
 def readHistory():
     global history
-    with open(HISTORY_LOCATION) as f:
+    global FIRST_PLAYER_COLOR
+    global SECOND_PLAYER_COLOR
+    global HISTORY_INDEX
+    
+    clearBoard()
+    
+    filePath = filedialog.askopenfilename()
+    print('Selected file path: ' + filePath)
+    
+    with open(filePath) as f:
         history = f.readlines()
     history = [x.strip() for x in history]
+
+    for h in history:
+        print(h)
+
+    for entry in history[:5]:
+        cellMap[entry].SetType(CELL_TYPE.BLOCKED)
+
+    if FIRST_PLAYER_COLOR.name != history[5]:
+        FIRST_PLAYER_COLOR = CELL_TYPE.BLUE_PLAYER
+        SECOND_PLAYER_COLOR = CELL_TYPE.RED_PLAYER
+
+    print('First player: ' + FIRST_PLAYER_COLOR.name)
+    print('Second player: ' + SECOND_PLAYER_COLOR.name)
+
+    HISTORY_INDEX = 0
+
+def moveFoward():
+    global HISTORY_INDEX
+
+    data = history[HISTORY_INDEX + 6]
+    print(data)
+    if HISTORY_INDEX % 2 == 0:
+        cellMap[data[0:2]].SetType(FIRST_PLAYER_COLOR)
+        cellMap[data[0:2]].SetValue(int(data[3:]))
+    else:
+        cellMap[data[0:2]].SetType(SECOND_PLAYER_COLOR)
+        cellMap[data[0:2]].SetValue(int(data[3:]))
+
+    HISTORY_INDEX += 1
+
+def moveBackward():
+    global HISTORY_INDEX
+
+    data = history[HISTORY_INDEX + 5]
+    print(data)
+    cellMap[data[0:2]].SetType(CELL_TYPE.PLAYABLE)
+    cellMap[data[0:2]].SetValue(data[0:2])
+
+    HISTORY_INDEX -= 1
 
 def appendToHistory(data):
     file = open(CURRENT_FILE_NAME, 'a')
@@ -278,6 +330,9 @@ def updateScoring():
     victoryScoreLabel.setText(str(redScore) + ' - ' + str(blueScore))
 
 def runServer():
+    global FIRST_PLAYER_COLOR
+    global SECOND_PLAYER_COLOR
+    
     os.makedirs(RED_FOLDER)
     os.makedirs(BLUE_FOLDER)
     
@@ -315,38 +370,36 @@ def runServer():
 
         firstPlayerConn = redConn
         secondPlayerConn = blueConn
-        firstPlayerColor = CELL_TYPE.RED_PLAYER
-        secondPlayerColor = CELL_TYPE.BLUE_PLAYER
         if i % 2 == 0:
             firstPlayerConn = blueConn
             secondPlayerConn = redConn
-            firstPlayerColor = CELL_TYPE.BLUE_PLAYER
-            secondPlayerColor = CELL_TYPE.RED_PLAYER
+            FIRST_PLAYER_COLOR = CELL_TYPE.BLUE_PLAYER
+            SECOND_PLAYER_COLOR = CELL_TYPE.RED_PLAYER
 
         sendDataToClient(firstPlayerConn, MESSAGE_START_GAME)
-        appendToHistory(firstPlayerColor.name)
+        appendToHistory(FIRST_PLAYER_COLOR.name)
 
         NR_MOVES = 15
         for i in range(0, NR_MOVES):                
-            print('Waiting to read from ' + firstPlayerColor.name)
+            print('Waiting to read from ' + FIRST_PLAYER_COLOR.name)
             data = readDataFromClient(firstPlayerConn)
             print(data)
-            cellMap[data[0:2]].SetType(firstPlayerColor)
+            cellMap[data[0:2]].SetType(FIRST_PLAYER_COLOR)
             cellMap[data[0:2]].SetValue(int(data[3:]))
-            print('Sending move to ' + secondPlayerColor.name)
+            print('Sending move to ' + SECOND_PLAYER_COLOR.name)
             sendDataToClient(secondPlayerConn, data)
-            print('Waiting to read from ' + secondPlayerColor.name)
+            print('Waiting to read from ' + SECOND_PLAYER_COLOR.name)
             data = readDataFromClient(secondPlayerConn)
             print(data)
-            cellMap[data[0:2]].SetType(secondPlayerColor)
+            cellMap[data[0:2]].SetType(SECOND_PLAYER_COLOR)
             cellMap[data[0:2]].SetValue(int(data[3:]))
             if i != NR_MOVES - 1:
-                print('Sending more to ' + firstPlayerColor.name)
+                print('Sending more to ' + FIRST_PLAYER_COLOR.name)
                 sendDataToClient(firstPlayerConn, data)
 
-        print("Sending QUIT to " + firstPlayerColor.name)
+        print("Sending QUIT to " + FIRST_PLAYER_COLOR.name)
         sendDataToClient(firstPlayerConn, MESSAGE_END_GAME)
-        print("Sending QUIT to " + secondPlayerColor.name)
+        print("Sending QUIT to " + SECOND_PLAYER_COLOR.name)
         sendDataToClient(secondPlayerConn, MESSAGE_END_GAME)
 
         updateScoring()
@@ -358,19 +411,24 @@ def on_press(key):
     try: k = key.char
     except: k = key.name
     print(k)
-    if k == 'right':
-        print(1)
-    elif k == 'left':
-        print(2)
+    if RUN_IN_OFFLINE_MODE:
+        if k == 'right':
+            if HISTORY_INDEX >= 0 and HISTORY_INDEX < 30:
+                moveFoward()
+        elif k == 'left':
+            if HISTORY_INDEX > 0:
+                moveBackward()
+        elif k == 'l':
+            readHistory()
 
 def main():
-    _thread.start_new_thread( runServer, () )
+    if not RUN_IN_OFFLINE_MODE:
+        _thread.start_new_thread( runServer, () )
+        
     window.mainloop()
     
 if __name__ == "__main__":
     lis = keyboard.Listener(on_press=on_press)
     lis.start()
     drawField()
-    if RUN_IN_OFFLINE_MODE:
-        readHistory()
     main()

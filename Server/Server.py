@@ -27,7 +27,7 @@ WINDOW_SIZE_Y = 700
 
 CELL_RADIUS = 50
 DELAY = 0
-NR_GAMES = 200
+NR_GAMES = 1
 
 RED_COLOR = '#e43326'
 BLUE_COLOR = '#2f41a5'
@@ -122,6 +122,8 @@ def readHistory():
     SECOND_PLAYER_COLOR = CELL_TYPE.BLUE_PLAYER
     
     filePath = filedialog.askopenfilename()
+    if filePath is '':
+        return
     print('Selected file path: ' + filePath)
     
     with open(filePath) as f:

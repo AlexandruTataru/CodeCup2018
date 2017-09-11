@@ -21,6 +21,14 @@
 
 using namespace std;
 
+//#define TESTING_SCENARIO
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Support structures
+//
+/////////////////////////////////////////////////////////////////////////////
+
 enum CELL_TYPE
 {
 	PLAYABLE,
@@ -38,6 +46,12 @@ struct Cell
 	Cell() : cellType(PLAYABLE), value(0) {}
 };
 
+/////////////////////////////////////////////////////////////////////////////
+//
+// Base player class with all the required logic
+//
+/////////////////////////////////////////////////////////////////////////////
+
 class BasePlayer
 {
 public:
@@ -47,7 +61,7 @@ protected:
 	std::vector<size_t> allowedValues;
 	std::map<std::string, Cell*> cellMapping;
 public:
-	BasePlayer() { resetGame();  }
+	BasePlayer() { resetGame(); }
 	~BasePlayer() {
 		allowedMoves.clear();
 		allowedValues.clear();
@@ -81,7 +95,7 @@ public:
 		cellMapping[move.first]->cellType = BLOCKED;
 	}
 
-	virtual void processEnemyMove(const Move& move) 
+	virtual void processEnemyMove(const Move& move)
 	{
 		if (move.first == "St") return;
 		std::string cellID = move.first;
@@ -154,6 +168,12 @@ public:
 		return neighbors;
 	}
 };
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Specialization of player
+//
+/////////////////////////////////////////////////////////////////////////////
 
 class Competitor : public BasePlayer
 {
@@ -236,11 +256,10 @@ int main(int argc, char **argv)
 	}
 
 	freeaddrinfo(result);
-	int nrGames = std::stoi(receiveData(ConnectSocket, 10));
-	cout << "We will be playing " << nrGames << " games" << endl;
 
 	BasePlayer *player = new Competitor();
 
+	int nrGames = std::stoi(receiveData(ConnectSocket, 10));
 	for (size_t i = 0; i < nrGames; ++i)
 	{
 		player->resetGame();

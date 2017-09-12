@@ -179,6 +179,68 @@ public:
 
 		return neighbors;
 	}
+
+	std::vector<std::string> getLoosingCellsIDs()
+	{
+		std::vector<std::string> cells;
+		for (auto cellID : allowedMoves) if (cellMapping[cellID]->compoundValue < 0) cells.push_back(cellID);
+		return cells;
+	}
+
+	std::vector<std::string> getWinningCellsIDs()
+	{
+		std::vector<std::string> cells;
+		for (auto cellID : allowedMoves) if (cellMapping[cellID]->compoundValue >= 0) cells.push_back(cellID);
+		return cells;
+	}
+
+	std::vector<std::string> getClearLoosingCellsIDs()
+	{
+		std::vector<std::string> clearlyLoosingCells;
+
+		for (auto unplayedCellID : allowedMoves)
+		{
+			Cell *unplayedCell = cellMapping[unplayedCellID];
+			size_t nrOfUnplayedSurroundingCells = 0;
+			for (auto neighborCell : unplayedCell->neighbors) if (neighborCell->cellType == PLAYABLE) ++nrOfUnplayedSurroundingCells;
+			int compoundValue = unplayedCell->compoundValue;
+			if (nrOfUnplayedSurroundingCells)
+			{
+				size_t steps = min(nrOfUnplayedSurroundingCells, allowedValues.size());
+				size_t highestIndex = allowedValues.size() - 1;
+				compoundValue = unplayedCell->compoundValue;
+				for (size_t i = 0; i < steps; ++i) compoundValue += allowedValues[highestIndex - i];
+			}
+			
+			if (compoundValue < 0) clearlyLoosingCells.push_back(unplayedCellID);
+		}
+
+		return clearlyLoosingCells;
+	}
+
+	std::vector<std::string> getClearWinningCellsIDs()
+	{
+		std::vector<std::string> clearlyWinningCells;
+
+		for (auto unplayedCellID : allowedMoves)
+		{
+			Cell *unplayedCell = cellMapping[unplayedCellID];
+			size_t nrOfUnplayedSurroundingCells = 0;
+			for (auto neighborCell : unplayedCell->neighbors) if (neighborCell->cellType == PLAYABLE) ++nrOfUnplayedSurroundingCells;
+			int compoundValue = unplayedCell->compoundValue;
+			if (nrOfUnplayedSurroundingCells)
+			{
+				size_t steps = min(nrOfUnplayedSurroundingCells, enemyAllowedValues.size());
+				size_t highestIndex = enemyAllowedValues.size() - 1;
+				compoundValue = unplayedCell->compoundValue;
+				for (size_t i = 0; i < steps; ++i) compoundValue -= enemyAllowedValues[highestIndex - i];
+			}
+
+			if (compoundValue > 0) clearlyWinningCells.push_back(unplayedCellID);
+		}
+
+		return clearlyWinningCells;
+	}
 };
 
 /////////////////////////////////////////////////////////////////////////////
@@ -212,17 +274,25 @@ class Competitor : public BasePlayer
 public:
 	Move nextMove()
 	{
+		cout << "Clear winning cells are: ";
+		for (auto cellID : getClearWinningCellsIDs()) cout << cellID << " ";
+		cout << endl;
+
+		cout << "Clearly loosing cells are: ";
+		for (auto cellID : getClearLoosingCellsIDs()) cout << cellID << " ";
+		cout << endl;
+
+		/*cout << "Possible loosing cells are: ";
+		for (auto cellID : getLoosingCellsIDs()) cout << cellID << " ";
+		cout << endl;
+
+		cout << "Possible winning cells are: ";
+		for (auto cellID : getWinningCellsIDs()) cout << cellID << " ";
+		cout << endl;*/
+
 		int bestScore = -9000;
 		std::string bestCellID = allowedMoves[0];
 		int maxValueToken = allowedValues[allowedValues.size() - 1];
-
-		cout << "Loosing cells are: ";
-		for (auto cellID : allowedMoves)
-		{
-			Cell *cell = cellMapping[cellID];
-			if (cell->compoundValue < 0) cout << cellID << " ";
-		}
-		cout << endl;
 
 		for (auto cellID : allowedMoves)
 		{
@@ -246,7 +316,6 @@ public:
 				break;
 			}
 
-			cout << cellID << " has a score of " << cellScore << endl;
 			if (cellScore > bestScore)
 			{
 				bestCellID = cellID;
@@ -266,6 +335,9 @@ public:
 			Cell *cell = cellMapping[neighborIDs];
 			if (cell->cellType == CELL_TYPE::PLAYABLE) cell->compoundValue += cellValue;
 		}
+
+		cellMapping[cellID]->value = cellValue;
+		cellMapping[cellID]->cellType = OWN;
 
 		return Move(cellID, cellValue);
 	}

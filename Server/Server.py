@@ -27,7 +27,7 @@ WINDOW_SIZE_Y = 700
 
 CELL_RADIUS = 50
 DELAY = 0
-NR_GAMES = 1
+NR_GAMES = 10
 
 RED_COLOR = '#e43326'
 BLUE_COLOR = '#2f41a5'
@@ -121,7 +121,7 @@ def readHistory():
     FIRST_PLAYER_COLOR = CELL_TYPE.RED_PLAYER
     SECOND_PLAYER_COLOR = CELL_TYPE.BLUE_PLAYER
     
-    filePath = filedialog.askopenfilename()
+    filePath = filedialog.askopenfilename(filetypes=(("Game files", "*.game"),))
     if filePath is '':
         return
     print('Selected file path: ' + filePath)
@@ -228,7 +228,7 @@ def clearBoard():
     global GAME_NR
     global CURRENT_FILE_NAME
     
-    CURRENT_FILE_NAME = 'GAME' + str(GAME_NR)
+    CURRENT_FILE_NAME = 'GAME' + str(GAME_NR) + '.game'
     GAME_NR += 1
     for cell in cells:
         cell.Reset()
@@ -369,7 +369,7 @@ def runServer():
     global FIRST_PLAYER_COLOR
     global SECOND_PLAYER_COLOR
 
-    TIMESTAMP = datetime.datetime.fromtimestamp(time.time()).strftime('_%H_%M_%S')
+    TIMESTAMP = datetime.datetime.fromtimestamp(time.time()).strftime('_%d_%H_%M_%S')
     RED_FOLDER = 'RED_WINS' + TIMESTAMP
     BLUE_FOLDER = 'BLUE_WINS' + TIMESTAMP
     GAME_NR = 1

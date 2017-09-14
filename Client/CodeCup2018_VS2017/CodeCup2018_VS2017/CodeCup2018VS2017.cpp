@@ -190,18 +190,9 @@ namespace CodeCup2018
 			for (auto unplayedCellID : allowedMoves)
 			{
 				Cell *unplayedCell = cellMapping[unplayedCellID];
-				size_t nrOfUnplayedSurroundingCells = 0;
-				for (auto neighborCell : unplayedCell->neighbors) if (neighborCell->cellType == PLAYABLE) ++nrOfUnplayedSurroundingCells;
-				int compoundValue = unplayedCell->compoundValue;
-				if (nrOfUnplayedSurroundingCells)
-				{
-					size_t steps = min(nrOfUnplayedSurroundingCells, allowedValues.size());
-					size_t highestIndex = allowedValues.size() - 1;
-					compoundValue = unplayedCell->compoundValue;
-					for (size_t i = 0; i < steps; ++i) compoundValue += allowedValues[highestIndex - i];
-				}
-
-				if (compoundValue < 0) clearlyLoosingCells.push_back(unplayedCellID);
+				bool hasPlayableNeighbors = std::find_if(unplayedCell->neighbors.begin(),
+					unplayedCell->neighbors.end(), [this](Cell* cell) { return cell->cellType == PLAYABLE; }) != unplayedCell->neighbors.end();
+				if(!hasPlayableNeighbors && unplayedCell->compoundValue < 0) clearlyLoosingCells.push_back(unplayedCellID);
 			}
 
 			return clearlyLoosingCells;
@@ -451,6 +442,9 @@ namespace CodeCup2018
 
 		Move nextMove()
 		{
+			std::string bestCellID = allowedMoves[rand() % allowedMoves.size()];
+			int bestCellValue = allowedValues[rand() % allowedValues.size()];
+
 			std::vector<Gains> gains;
 			std::vector<std::string> loosingCells = getClearLoosingCellsIDs();
 			std::vector<std::string> winningCells = getClearWinningCellsIDs();
@@ -471,30 +465,33 @@ namespace CodeCup2018
 					gain.loosingCells = getLoosingCellsIDs();
 					cancelMove(Move(cellID, cellValue));
 					gains.push_back(gain);
-
 				}
 			}
 
+			
+			int maxWon = 0, maxWinnings = 0;
+			Move bestMove, nextBestMove;
 			for (auto& gain : gains)
 			{
-				cout << gain.toString() << endl;
+				//cout << gain.toString() << endl;
+				int actualWon = gain.wonCells.size();
+				int actualWinnings = gain.winningCells.size();
+				if (actualWon > maxWon)
+				{
+					maxWon = actualWon;
+					bestMove = gain.move;
+				}
+				if (actualWinnings > maxWinnings)
+				{
+					maxWinnings = actualWinnings;
+					nextBestMove = gain.move;
+				}
 			}
 
-			if (loosingCells.size() > winningCells.size())
-			{
-				// Either cover a loosing cell
-				// or
-				// Make a move that would reduce oponent winning cells or increased yours or both
-			}
-			else
-			{
-				// Make a clasic move, one that would get you the most benefits
-			}
+			Move choosenMove;
+			if (maxWon != 0) choosenMove = bestMove;
+			else choosenMove = nextBestMove;
 
-			std::string bestCellID = allowedMoves[rand() % allowedMoves.size()];
-			int maxValueToken = allowedValues[rand() % allowedValues.size()];
-
-			const Move choosenMove = Move(bestCellID, maxValueToken);
 			placeOwnMove(choosenMove);
 
 			return choosenMove;

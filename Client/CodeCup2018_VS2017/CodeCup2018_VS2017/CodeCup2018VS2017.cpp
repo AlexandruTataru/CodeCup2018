@@ -68,6 +68,7 @@ namespace CodeCup2018
 		std::vector<cellValue> enemyAllowedValues;
 		std::map<cellID, Cell*> cellMapping;
 		int movesLeft;
+		bool movedFirst;
 	public:
 		BasePlayer() { resetGame(); }
 		~BasePlayer() {
@@ -105,13 +106,18 @@ namespace CodeCup2018
 
 		virtual void processEnemyMove(const Move& move)
 		{
-			if (move.first == "St") return;
+			if (move.first == "St") 
+			{
+				movedFirst = true;
+				return;
+			}
 			placeEnemyMove(move);
 		}
 
 		virtual Move nextMove() = 0;
 
 		virtual void resetGame() {
+			movedFirst = false;
 			movesLeft = 15;
 			allowedMoves.clear();
 			for (auto elem : { "A1", "A2", "A3", "A4", "A5", "A6", "A7", "A8",
@@ -471,6 +477,7 @@ namespace CodeCup2018
 			
 			int maxWon = 0, maxWinnings = 0;
 			Move bestMove, nextBestMove;
+			bool foundBestMove = false, foundNextBestMove = false;
 			for (auto& gain : gains)
 			{
 				//cout << gain.toString() << endl;
@@ -480,17 +487,26 @@ namespace CodeCup2018
 				{
 					maxWon = actualWon;
 					bestMove = gain.move;
+					foundBestMove = true;
 				}
 				if (actualWinnings > maxWinnings)
 				{
 					maxWinnings = actualWinnings;
 					nextBestMove = gain.move;
+					foundNextBestMove = true;
 				}
 			}
 
 			Move choosenMove;
 			if (maxWon != 0) choosenMove = bestMove;
 			else choosenMove = nextBestMove;
+
+			if (!foundBestMove && !foundNextBestMove)
+			{
+				std::string bestCellID = allowedMoves[rand() % allowedMoves.size()];
+				int bestCellValue = allowedValues[rand() % allowedValues.size()];
+				choosenMove = Move(bestCellID, bestCellValue);
+			}
 
 			placeOwnMove(choosenMove);
 

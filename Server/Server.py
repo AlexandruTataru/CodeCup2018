@@ -27,7 +27,7 @@ WINDOW_SIZE_Y = 700
 
 CELL_RADIUS = 50
 DELAY = 0
-NR_GAMES = 10
+NR_GAMES = 100
 
 RED_COLOR = '#e43326'
 BLUE_COLOR = '#2f41a5'
@@ -357,6 +357,13 @@ def updateScoring():
     generalScoreLabel.setText(str(redTotalScore) + ' - ' + str(blueTotalScore))
     victoryScoreLabel.setText(str(redScore) + ' - ' + str(blueScore))
 
+def placeToken(token, value, color):
+    if cellMap[token].GetType() == CELL_TYPE.PLAYABLE:
+        cellMap[token].SetType(color)
+        cellMap[token].SetValue(value)
+    else:
+        exit(-1)
+
 def runServer():
     global FIRST_PLAYER_COLOR
     global SECOND_PLAYER_COLOR
@@ -436,15 +443,13 @@ def runServer():
             print('Waiting to read from ' + FIRST_PLAYER_COLOR.name)
             data = readDataFromClient(firstPlayerConn)
             print(data)
-            cellMap[data[0:2]].SetType(FIRST_PLAYER_COLOR)
-            cellMap[data[0:2]].SetValue(int(data[3:]))
+            placeToken(data[0:2], int(data[3:]), FIRST_PLAYER_COLOR)
             print('Sending move to ' + SECOND_PLAYER_COLOR.name)
             sendDataToClient(secondPlayerConn, data)
             print('Waiting to read from ' + SECOND_PLAYER_COLOR.name)
             data = readDataFromClient(secondPlayerConn)
             print(data)
-            cellMap[data[0:2]].SetType(SECOND_PLAYER_COLOR)
-            cellMap[data[0:2]].SetValue(int(data[3:]))
+            placeToken(data[0:2], int(data[3:]), SECOND_PLAYER_COLOR)
             if i != NR_MOVES - 1:
                 print('Sending more to ' + FIRST_PLAYER_COLOR.name)
                 sendDataToClient(firstPlayerConn, data)

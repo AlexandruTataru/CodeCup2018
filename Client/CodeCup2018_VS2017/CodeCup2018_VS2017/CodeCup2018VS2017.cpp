@@ -1,16 +1,21 @@
 #include "stdafx.h"
-#define WIN32_LEAN_AND_MEAN
 
-#include <windows.h>
-#include <winsock2.h>
-#include <ws2tcpip.h>
+#define COMPETITION_MODE
+
+#ifndef COMPETITION_MODE
+	#define WIN32_LEAN_AND_MEAN
+
+	#include <windows.h>
+	#include <winsock2.h>
+	#include <ws2tcpip.h>
+
+	#pragma comment (lib, "Ws2_32.lib")
+	#pragma comment (lib, "Mswsock.lib")
+	#pragma comment (lib, "AdvApi32.lib")
+#endif
+
 #include <stdlib.h>
 #include <stdio.h>
-
-#pragma comment (lib, "Ws2_32.lib")
-#pragma comment (lib, "Mswsock.lib")
-#pragma comment (lib, "AdvApi32.lib")
-
 #include <iostream>
 #include <vector>
 #include <string>
@@ -20,8 +25,6 @@
 #include <map>
 
 using namespace std;
-
-//#define TESTING_SCENARIO
 
 namespace CodeCup2018
 {
@@ -516,6 +519,20 @@ namespace CodeCup2018
 
 }
 
+#ifdef COMPETITION_MODE
+std::string receiveData()
+{
+	std::string data;
+	cin >> data;
+	return data;
+}
+
+void sendData(const std::string& out)
+{
+	cout << out << endl;
+	cout.flush();
+}
+#else
 std::string receiveData(const SOCKET& socket, const int& len)
 {
 	char *inBuf = new char[len + 1];
@@ -531,9 +548,11 @@ void sendData(const SOCKET& socket, const std::string& out)
 	cout << "Send data: " << out << endl;
 	send(socket, out.c_str(), out.size(), 0);
 }
+#endif
 
 int main(int argc, char **argv)
 {
+#ifndef COMPETITION_MODE
 	WSADATA wsaData;
 	SOCKET ConnectSocket = INVALID_SOCKET;
 	struct addrinfo *result = NULL,
@@ -568,22 +587,39 @@ int main(int argc, char **argv)
 	BasePlayer *player = new NeverLosePlayer();
 
 	int nrGames = std::stoi(receiveData(ConnectSocket, 10));
+#else
+	using namespace CodeCup2018;
+	BasePlayer *player = new NeverLosePlayer();
+	int nrGames = 1;
+#endif
 	for (int i = 0; i < nrGames; ++i)
 	{
 		player->resetGame();
 		int blockedCells = 5;
+#ifndef COMPETITION_MODE
 		while (blockedCells--) player->processBlockedMove(BasePlayer::raw2Move(receiveData(ConnectSocket, 2)));
 		std::string move = receiveData(ConnectSocket, 5);
+#else
+		while (blockedCells--) player->processBlockedMove(BasePlayer::raw2Move(receiveData()));
+		std::string move = receiveData();
+#endif
 		while (move != "Quit")
 		{
 			player->processEnemyMove(BasePlayer::raw2Move(move));
+#ifndef COMPETITION_MODE
 			sendData(ConnectSocket, BasePlayer::move2Raw(player->nextMove()));
 			move = receiveData(ConnectSocket, 5);
+#else
+			sendData(BasePlayer::move2Raw(player->nextMove()));
+			move = receiveData();
+#endif
 		}
 	}
 
+#ifndef COMPETITION_MODE
 	closesocket(ConnectSocket);
 	WSACleanup();
+#endif
 
 	return 0;
 }

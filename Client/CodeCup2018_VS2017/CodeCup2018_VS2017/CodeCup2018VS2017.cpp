@@ -1,8 +1,10 @@
 #include "stdafx.h"
 
-#define COMPETITION_MODE
+//#define CONSOLE_MODE
+//#define SOCKET_MODE
+#define OFFLINE_DEBUG_MODE
 
-#ifndef COMPETITION_MODE
+#ifdef SOCKET_MODE
 	#define WIN32_LEAN_AND_MEAN
 
 	#include <windows.h>
@@ -21,10 +23,14 @@
 #include <string>
 #include <algorithm>
 #include <sstream>
+#include <fstream>
 #include <time.h>
 #include <map>
 
 using namespace std;
+
+std::vector<std::string> offlineMoves;
+size_t offlineMovesCursor = 0;
 
 namespace CodeCup2018
 {
@@ -451,9 +457,6 @@ namespace CodeCup2018
 
 		Move nextMove()
 		{
-			std::string bestCellID = allowedMoves[rand() % allowedMoves.size()];
-			int bestCellValue = allowedValues[rand() % allowedValues.size()];
-
 			std::vector<Gains> gains;
 			std::vector<std::string> loosingCells = getClearLoosingCellsIDs();
 			std::vector<std::string> winningCells = getClearWinningCellsIDs();
@@ -519,20 +522,7 @@ namespace CodeCup2018
 
 }
 
-#ifdef COMPETITION_MODE
-std::string receiveData()
-{
-	std::string data;
-	cin >> data;
-	return data;
-}
-
-void sendData(const std::string& out)
-{
-	cout << out << endl;
-	cout.flush();
-}
-#else
+#ifdef SOCKET_MODE
 std::string receiveData(const SOCKET& socket, const int& len)
 {
 	char *inBuf = new char[len + 1];
@@ -548,11 +538,35 @@ void sendData(const SOCKET& socket, const std::string& out)
 	cout << "Send data: " << out << endl;
 	send(socket, out.c_str(), out.size(), 0);
 }
+#elif defined(CONSOLE_MODE)
+std::string receiveData()
+{
+	std::string data;
+	cin >> data;
+	return data;
+}
+
+void sendData(const std::string& out)
+{
+	cout << out << endl;
+	cout.flush();
+}
+#elif defined(OFFLINE_DEBUG_MODE)
+std::string receiveData()
+{
+	return offlineMoves.at(offlineMovesCursor++);
+}
+
+void sendData(const std::string& out) {}
 #endif
 
 int main(int argc, char **argv)
 {
-#ifndef COMPETITION_MODE
+	using namespace CodeCup2018;
+	BasePlayer *player = new NeverLosePlayer();
+	int nrGames = 1;
+
+#ifdef SOCKET_MODE
 	WSADATA wsaData;
 	SOCKET ConnectSocket = INVALID_SOCKET;
 	struct addrinfo *result = NULL,
@@ -583,20 +597,21 @@ int main(int argc, char **argv)
 
 	freeaddrinfo(result);
 
-	using namespace CodeCup2018;
-	BasePlayer *player = new NeverLosePlayer();
-
-	int nrGames = std::stoi(receiveData(ConnectSocket, 10));
-#else
-	using namespace CodeCup2018;
-	BasePlayer *player = new NeverLosePlayer();
-	int nrGames = 1;
+	nrGames = std::stoi(receiveData(ConnectSocket, 10));
+#elif defined(OFFLINE_DEBUG_MODE)
+	std::ifstream infile("OfflineGame.txt");
+	std::string line;
+	while (std::getline(infile, line))
+	{
+		offlineMoves.push_back(line);
+	}
 #endif
+
 	for (int i = 0; i < nrGames; ++i)
 	{
 		player->resetGame();
 		int blockedCells = 5;
-#ifndef COMPETITION_MODE
+#ifdef SOCKET_MODE
 		while (blockedCells--) player->processBlockedMove(BasePlayer::raw2Move(receiveData(ConnectSocket, 2)));
 		std::string move = receiveData(ConnectSocket, 5);
 #else
@@ -606,7 +621,7 @@ int main(int argc, char **argv)
 		while (move != "Quit")
 		{
 			player->processEnemyMove(BasePlayer::raw2Move(move));
-#ifndef COMPETITION_MODE
+#ifdef SOCKET_MODE
 			sendData(ConnectSocket, BasePlayer::move2Raw(player->nextMove()));
 			move = receiveData(ConnectSocket, 5);
 #else
@@ -616,7 +631,7 @@ int main(int argc, char **argv)
 		}
 	}
 
-#ifndef COMPETITION_MODE
+#ifdef SOCKET_MODE
 	closesocket(ConnectSocket);
 	WSACleanup();
 #endif

@@ -19,6 +19,7 @@ HISTORY_INDEX = -1
 TIMESTAMP = None
 RED_FOLDER = None
 BLUE_FOLDER = None
+DRAWS_FOLDER = None
 GAME_NR = 0
 CURRENT_FILE_NAME = None
 
@@ -27,7 +28,7 @@ WINDOW_SIZE_Y = 700
 
 CELL_RADIUS = 50
 DELAY = 0
-NR_GAMES = 100
+NR_GAMES = 10
 
 RED_COLOR = '#e43326'
 BLUE_COLOR = '#2f41a5'
@@ -353,6 +354,7 @@ def updateScoring():
         winnerLabel.setText("DRAW")
         winnerLabel.setFill('black')
         scoreLabel.setText(str(redFinalPoints) + " SAME")
+        os.rename(CURRENT_FILE_NAME, DRAWS_FOLDER + '\\' + CURRENT_FILE_NAME)
 
     generalScoreLabel.setText(str(redTotalScore) + ' - ' + str(blueTotalScore))
     victoryScoreLabel.setText(str(redScore) + ' - ' + str(blueScore))
@@ -376,9 +378,10 @@ def runServer():
     global FIRST_PLAYER_COLOR
     global SECOND_PLAYER_COLOR
 
-    TIMESTAMP = datetime.datetime.fromtimestamp(time.time()).strftime('_%d_%H_%M_%S')
-    RED_FOLDER = 'RED_WINS' + TIMESTAMP
-    BLUE_FOLDER = 'BLUE_WINS' + TIMESTAMP
+    TIMESTAMP = 'COMPETITION_' + datetime.datetime.fromtimestamp(time.time()).strftime('%A_%H.%M.%S')
+    RED_FOLDER = TIMESTAMP + '/RED_WINS'
+    BLUE_FOLDER = TIMESTAMP + '/BLUE_WINS'
+    DRAWS_FOLDER = TIMESTAMP + '/DRAWS'
     GAME_NR = 1
     CURRENT_FILE_NAME = None
 

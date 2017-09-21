@@ -396,6 +396,7 @@ def runServer():
     
     os.makedirs(RED_FOLDER)
     os.makedirs(BLUE_FOLDER)
+    os.makedirs(DRAWS_FOLDER)
     
     redSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     redSocket.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)

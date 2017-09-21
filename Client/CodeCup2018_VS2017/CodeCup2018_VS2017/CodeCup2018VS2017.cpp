@@ -456,6 +456,14 @@ void sendData(const std::string& out) {}
 
 int main(int argc, char **argv)
 {
+	std::string host = "localhost";
+	std::string port = "6666";
+	if (argc == 3)
+	{
+		host = argv[1];
+		port = argv[2];
+	}
+
 	using namespace CodeCup2018;
 	BasePlayer *player = new Competitor();
 	int nrGames = 1;
@@ -474,7 +482,7 @@ int main(int argc, char **argv)
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_protocol = IPPROTO_TCP;
 
-	getaddrinfo("localhost", "6666", &hints, &result);
+	getaddrinfo(host.c_str(), port.c_str(), &hints, &result);
 	srand(time(NULL));
 
 	for (ptr = result; ptr != NULL; ptr = ptr->ai_next) {

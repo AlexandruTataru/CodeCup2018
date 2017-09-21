@@ -28,7 +28,7 @@ WINDOW_SIZE_Y = 700
 
 CELL_RADIUS = 50
 DELAY = 0
-NR_GAMES = 10
+NR_GAMES = 108
 
 RED_COLOR = '#e43326'
 BLUE_COLOR = '#2f41a5'
@@ -341,20 +341,20 @@ def updateScoring():
         winnerLabel.setText("BLUE WON")
         winnerLabel.setFill(BLUE_COLOR)
         scoreLabel.setText(str(blueFinalPoints) + " to " + str(redFinalPoints))
-        os.rename(CURRENT_FILE_NAME, BLUE_FOLDER + '\\' + CURRENT_FILE_NAME)
+        os.rename(CURRENT_FILE_NAME, BLUE_FOLDER + '/' + CURRENT_FILE_NAME)
     elif blueFinalPoints < redFinalPoints:
         redScore += 1
         winnerLabel.setText("RED WON")
         winnerLabel.setFill(RED_COLOR)
         scoreLabel.setText(str(redFinalPoints) + " to " + str(blueFinalPoints))
-        os.rename(CURRENT_FILE_NAME, RED_FOLDER + '\\' + CURRENT_FILE_NAME)
+        os.rename(CURRENT_FILE_NAME, RED_FOLDER + '/' + CURRENT_FILE_NAME)
     elif blueFinalPoints == redFinalPoints:
         redTotalScore += redFinalPoints
         blueTotalScore += blueFinalPoints
         winnerLabel.setText("DRAW")
         winnerLabel.setFill('black')
         scoreLabel.setText(str(redFinalPoints) + " SAME")
-        os.rename(CURRENT_FILE_NAME, DRAWS_FOLDER + '\\' + CURRENT_FILE_NAME)
+        os.rename(CURRENT_FILE_NAME, DRAWS_FOLDER + '/' + CURRENT_FILE_NAME)
 
     generalScoreLabel.setText(str(redTotalScore) + ' - ' + str(blueTotalScore))
     victoryScoreLabel.setText(str(redScore) + ' - ' + str(blueScore))
@@ -373,12 +373,13 @@ def runServer():
     global TIMESTAMP
     global RED_FOLDER
     global BLUE_FOLDER
+    global DRAWS_FOLDER
     global GAME_NR
     global CURRENT_FILE_NAME
     global FIRST_PLAYER_COLOR
     global SECOND_PLAYER_COLOR
 
-    TIMESTAMP = 'COMPETITION_' + datetime.datetime.fromtimestamp(time.time()).strftime('%A_%H.%M.%S')
+    TIMESTAMP = 'BATTLE_' + datetime.datetime.fromtimestamp(time.time()).strftime('%A_%H.%M.%S')
     RED_FOLDER = TIMESTAMP + '/RED_WINS'
     BLUE_FOLDER = TIMESTAMP + '/BLUE_WINS'
     DRAWS_FOLDER = TIMESTAMP + '/DRAWS'

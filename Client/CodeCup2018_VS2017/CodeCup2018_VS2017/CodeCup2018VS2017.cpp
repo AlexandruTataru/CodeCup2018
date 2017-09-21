@@ -1,8 +1,9 @@
 #include "stdafx.h"
 
 //#define CONSOLE_MODE
-//#define SOCKET_MODE
-#define OFFLINE_DEBUG_MODE
+#define SOCKET_MODE
+//#define OFFLINE_DEBUG_MODE
+//#define PLAYER_COLOR "BLUE_PLAYER"
 
 #ifdef SOCKET_MODE
 	#define WIN32_LEAN_AND_MEAN
@@ -326,113 +327,6 @@ namespace CodeCup2018
 
 	class Competitor : public CodeCup2018::BasePlayer
 	{
-	public:
-		Move nextMove()
-		{
-			int bestScore = -9000;
-			std::string bestCellID = allowedMoves[0];
-			int maxValueToken = allowedValues[allowedValues.size() - 1];
-
-			if (isOpeningGame())
-			{
-				cout << "Opening game move" << endl;
-				int bestScore = -9000;
-				for (auto cellID : allowedMoves)
-				{
-					Cell *currentCell = cellMapping[cellID];
-					int score = std::count_if(currentCell->neighbors.begin(), currentCell->neighbors.end(), [](Cell* cell) 
-					{
-						return cell->cellType == PLAYABLE;
-					});
-					if (score > bestScore)
-					{
-						bestScore = score;
-						bestCellID = cellID;
-					}
-				}
-			}
-			else if (isMiddleGame())
-			{
-				cout << "Middle game move" << endl;
-				int bestScore = -9000;
-				for (auto cellID : allowedMoves)
-				{
-					Cell *currentCell = cellMapping[cellID];
-					int score = std::count_if(currentCell->neighbors.begin(), currentCell->neighbors.end(), [val = maxValueToken](Cell* cell)
-					{
-						return cell->compoundValue <= val;
-					});
-					if (score > bestScore)
-					{
-						bestScore = score;
-						bestCellID = cellID;
-					}
-				}
-			}
-			else if (isEndGame())
-			{
-				cout << "End game move" << endl;
-				std::vector<std::string> loosingCells = getClearLoosingCellsIDs();
-				if (!loosingCells.empty())
-				{
-					bestCellID = loosingCells[0];
-				}
-				else
-				{
-					int bestScore = -9000;
-					for (auto cellID : allowedMoves)
-					{
-						Cell *currentCell = cellMapping[cellID];
-						int score = std::count_if(currentCell->neighbors.begin(), currentCell->neighbors.end(), [val = maxValueToken](Cell* cell)
-						{
-							return cell->compoundValue <= val;
-						});
-						if (score > bestScore)
-						{
-							bestScore = score;
-							bestCellID = cellID;
-						}
-					}
-				}
-			}
-
-			for (auto cellID : allowedMoves)
-			{
-				Cell *allowedCell = cellMapping[cellID];
-				int cellScore = 0;
-				bool loosingCell = false;
-				for (auto cell : allowedCell->neighbors)
-				{
-					if (cell->cellType == PLAYABLE)
-					{
-						loosingCell = false;
-						if((cell->compoundValue + maxValueToken) >= 0)
-							cellScore += 1;
-					}
-				}
-
-				if (loosingCell)
-				{
-					bestCellID = cellID;
-					break;
-				}
-
-				if (cellScore > bestScore)
-				{
-					bestCellID = cellID;
-					bestScore = cellScore;
-				}
-			}
-
-			const Move choosenMove = Move(bestCellID, maxValueToken);
-			placeOwnMove(choosenMove);
-
-			return choosenMove;
-		}
-	};
-
-	class NeverLosePlayer : public CodeCup2018::BasePlayer
-	{
 		struct Gains
 		{
 			Move move;
@@ -563,7 +457,7 @@ void sendData(const std::string& out) {}
 int main(int argc, char **argv)
 {
 	using namespace CodeCup2018;
-	BasePlayer *player = new NeverLosePlayer();
+	BasePlayer *player = new Competitor();
 	int nrGames = 1;
 
 #ifdef SOCKET_MODE
@@ -605,6 +499,7 @@ int main(int argc, char **argv)
 	{
 		offlineMoves.push_back(line);
 	}
+	offlineMoves.erase(offlineMoves.begin() + 5);
 #endif
 
 	for (int i = 0; i < nrGames; ++i)

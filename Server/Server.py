@@ -28,7 +28,7 @@ WINDOW_SIZE_Y = 700
 
 CELL_RADIUS = 50
 DELAY = 0
-NR_GAMES = 108
+NR_GAMES = 10800
 
 RED_COLOR = '#e43326'
 BLUE_COLOR = '#2f41a5'
@@ -258,24 +258,6 @@ blueScore = 0
 redTotalScore = 0
 blueTotalScore = 0
 
-label = Text(Point(WINDOW_SIZE_X * 0.80, 50), "Red - Blue")
-label.setFace('courier')
-label.setSize(24)
-label.setWidth(WINDOW_SIZE_X)
-label.draw(window)
-
-generalScoreLabel = Text(Point(WINDOW_SIZE_X * 0.80, 90), "0 - 0")
-generalScoreLabel.setFace('courier')
-generalScoreLabel.setSize(24)
-generalScoreLabel.setWidth(WINDOW_SIZE_X)
-generalScoreLabel.draw(window)
-
-victoryScoreLabel = Text(Point(WINDOW_SIZE_X * 0.80, 130), "0 - 0")
-victoryScoreLabel.setFace('courier')
-victoryScoreLabel.setSize(24)
-victoryScoreLabel.setWidth(WINDOW_SIZE_X)
-victoryScoreLabel.draw(window)
-
 winnerLabel = Text(Point(WINDOW_SIZE_X * 0.22, 50), "")
 scoreLabel = Text(Point(WINDOW_SIZE_X * 0.22, 90), "")
 winnerLabel.setFace('courier')
@@ -295,8 +277,6 @@ def clearScore():
     global blueScore
     global redTotalScore
     global blueTotalScore
-    global generalScoreLabel
-    global victoryScoreLabel
     global winnerLabel
     global scoreLabel
 
@@ -304,12 +284,87 @@ def clearScore():
     blueScore = 0
     redTotalScore = 0
     blueTotalScore = 0
-    
-    generalScoreLabel.setText("0 - 0")
-    victoryScoreLabel.setText("0 - 0")
 
     winnerLabel.setText("")
     scoreLabel.setText("")
+
+redLabel = None
+redPointsLabel = None
+blueLabel = None
+bluePointsLabel = None
+
+def drawScoreTable():
+
+    global redLabel
+    global redPointsLabel
+    global blueLabel
+    global bluePointsLabel
+
+    HOR_SIZE = 300
+    HEIGHT = 40
+    
+    vertices = []
+    vertices.append(Point(WINDOW_SIZE_X - HOR_SIZE, 0))
+    vertices.append(Point(WINDOW_SIZE_X, 0))
+    vertices.append(Point(WINDOW_SIZE_X, HEIGHT))
+    vertices.append(Point(WINDOW_SIZE_X - HOR_SIZE, HEIGHT))
+    bck = Polygon(vertices)
+    bck.setFill('lightgrey')
+    bck.draw(window)
+
+    label = Text(Point(WINDOW_SIZE_X - HOR_SIZE/2, HEIGHT/2), 'Best of ' + str(NR_GAMES) + ' games')
+    label.setFace('courier')
+    label.setSize(12)
+    label.setWidth(HOR_SIZE)
+    label.draw(window)
+
+    vertices.clear()
+    vertices.append(Point(WINDOW_SIZE_X - HOR_SIZE, HEIGHT))
+    vertices.append(Point(WINDOW_SIZE_X - HOR_SIZE/2, HEIGHT))
+    vertices.append(Point(WINDOW_SIZE_X - HOR_SIZE/2, HEIGHT * 4))
+    vertices.append(Point(WINDOW_SIZE_X - HOR_SIZE, HEIGHT * 4))
+    bck = Polygon(vertices)
+    bck.setFill(RED_COLOR)
+    bck.draw(window)
+
+    vertices.clear()
+    vertices.append(Point(WINDOW_SIZE_X - HOR_SIZE/2, HEIGHT))
+    vertices.append(Point(WINDOW_SIZE_X, HEIGHT))
+    vertices.append(Point(WINDOW_SIZE_X, HEIGHT * 4))
+    vertices.append(Point(WINDOW_SIZE_X - HOR_SIZE/2, HEIGHT * 4))
+    bck = Polygon(vertices)
+    bck.setFill(BLUE_COLOR)
+    bck.draw(window)
+
+    redLabel = Text(Point(WINDOW_SIZE_X - HOR_SIZE * 0.75, HEIGHT * 2), '0')
+    redLabel.setFace('courier')
+    redLabel.setSize(28)
+    redLabel.setFill('white')
+    redLabel.setStyle('bold')
+    redLabel.setWidth(HOR_SIZE / 2)
+    redLabel.draw(window)
+
+    redPointsLabel = Text(Point(WINDOW_SIZE_X - HOR_SIZE * 0.75, HEIGHT * 3.5), '0')
+    redPointsLabel.setFace('courier')
+    redPointsLabel.setSize(22)
+    redPointsLabel.setFill('white')
+    redPointsLabel.setWidth(HOR_SIZE / 2)
+    redPointsLabel.draw(window)
+
+    blueLabel = Text(Point(WINDOW_SIZE_X - HOR_SIZE * 0.25, HEIGHT * 2), '0')
+    blueLabel.setFace('courier')
+    blueLabel.setSize(28)
+    blueLabel.setFill('white')
+    blueLabel.setStyle('bold')
+    blueLabel.setWidth(HOR_SIZE / 2)
+    blueLabel.draw(window)
+
+    bluePointsLabel = Text(Point(WINDOW_SIZE_X - HOR_SIZE * 0.25, HEIGHT * 3.5), '0')
+    bluePointsLabel.setFace('courier')
+    bluePointsLabel.setSize(22)
+    bluePointsLabel.setFill('white')
+    bluePointsLabel.setWidth(HOR_SIZE / 2)
+    bluePointsLabel.draw(window)
 
 def updateScoring():
     global redScore
@@ -356,8 +411,11 @@ def updateScoring():
         scoreLabel.setText(str(redFinalPoints) + " SAME")
         os.rename(CURRENT_FILE_NAME, DRAWS_FOLDER + '/' + CURRENT_FILE_NAME)
 
-    generalScoreLabel.setText(str(redTotalScore) + ' - ' + str(blueTotalScore))
-    victoryScoreLabel.setText(str(redScore) + ' - ' + str(blueScore))
+    redLabel.setText(str(redTotalScore))
+    blueLabel.setText(str(blueTotalScore))
+
+    redPointsLabel.setText(str(redScore))
+    bluePointsLabel.setText(str(blueScore))
 
 def placeToken(token, value, color):
     if cellMap[token].GetType() == CELL_TYPE.PLAYABLE:
@@ -497,5 +555,6 @@ def main():
 if __name__ == "__main__":
     lis = keyboard.Listener(on_press=on_press)
     lis.start()
+    drawScoreTable()
     drawField()
     main()

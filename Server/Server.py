@@ -30,7 +30,7 @@ WINDOW_SIZE_Y = 700
 
 CELL_RADIUS = 50
 DELAY = 0
-NR_GAMES = 108
+NR_GAMES = 10
 
 RED_COLOR = '#e43326'
 BLUE_COLOR = '#2f41a5'
@@ -192,24 +192,37 @@ def readHistory():
 
     HISTORY_INDEX = 0
 
-def moveFoward():
+def moveForward():
     global HISTORY_INDEX
+    global uiAvailableRedMoves
+    global uiAvailableBlueMoves
 
     data = history[HISTORY_INDEX + 6]
     print(data)
     if HISTORY_INDEX % 2 == 0:
         cellMap[data[0:2]].SetType(FIRST_PLAYER_COLOR)
         cellMap[data[0:2]].SetValue(int(data[3:]))
-        uiAvailableRedMoves[int(data[3:]) - 1].setFill('')
+
+        if FIRST_PLAYER_COLOR == CELL_TYPE.RED_PLAYER:
+            uiAvailableRedMoves[int(data[3:]) - 1].setFill('')
+        else:
+            uiAvailableBlueMoves[int(data[3:]) - 1].setFill('')
+        
     else:
         cellMap[data[0:2]].SetType(SECOND_PLAYER_COLOR)
         cellMap[data[0:2]].SetValue(int(data[3:]))
-        uiAvailableBlueMoves[int(data[3:]) - 1].setFill('')
+
+        if SECOND_PLAYER_COLOR == CELL_TYPE.RED_PLAYER:
+            uiAvailableRedMoves[int(data[3:]) - 1].setFill('')
+        else:
+            uiAvailableBlueMoves[int(data[3:]) - 1].setFill('')
 
     HISTORY_INDEX += 1
 
 def moveBackward():
     global HISTORY_INDEX
+    global uiAvailableRedMoves
+    global uiAvailableBlueMoves
 
     data = history[HISTORY_INDEX + 5]
     print(data)
@@ -489,8 +502,6 @@ def placeToken(token, value, color):
         exit(-1)
 
 def runServer():
-    global FIRST_PLAYER_COLOR
-    global SECOND_PLAYER_COLOR
     global RUN_IN_ONLINE_MODE
     global TIMESTAMP
     global RED_FOLDER
@@ -501,7 +512,7 @@ def runServer():
     global FIRST_PLAYER_COLOR
     global SECOND_PLAYER_COLOR
 
-    TIMESTAMP = 'BATTLE_' + datetime.datetime.fromtimestamp(time.time()).strftime('%A_%H.%M.%S')
+    TIMESTAMP = 'FIGHT_' + datetime.datetime.fromtimestamp(time.time()).strftime('%Y.%m.%d_%H.%M.%S')
     RED_FOLDER = TIMESTAMP + '/RED_WINS'
     BLUE_FOLDER = TIMESTAMP + '/BLUE_WINS'
     DRAWS_FOLDER = TIMESTAMP + '/DRAWS'
@@ -601,7 +612,7 @@ def on_press(key):
     if not RUN_IN_ONLINE_MODE:
         if k == 'right':
             if HISTORY_INDEX >= 0 and HISTORY_INDEX < 30:
-                moveFoward()
+                moveForward()
         elif k == 'left':
             if HISTORY_INDEX > 0:
                 moveBackward()

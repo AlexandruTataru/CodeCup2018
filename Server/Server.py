@@ -23,19 +23,21 @@ DRAWS_FOLDER = None
 GAME_NR = 0
 CURRENT_FILE_NAME = None
 
+AVAILABLE_MOVES_PANEL_HEIGH = 150
+
 WINDOW_SIZE_X = 800
 WINDOW_SIZE_Y = 700
 
 CELL_RADIUS = 50
 DELAY = 0
-NR_GAMES = 10800
+NR_GAMES = 108
 
 RED_COLOR = '#e43326'
 BLUE_COLOR = '#2f41a5'
 NORMAL_COLOR = '#dddddd'
 BLOCKED_COLOR = '#694538'
 
-window = GraphWin("CodeCup 2018 Server", WINDOW_SIZE_X, WINDOW_SIZE_Y)
+window = GraphWin("CodeCup 2018 Server", WINDOW_SIZE_X, WINDOW_SIZE_Y + AVAILABLE_MOVES_PANEL_HEIGH)
 
 #Server related messages
 MESSAGE_START_GAME = 'Start'
@@ -43,6 +45,50 @@ MESSAGE_END_GAME = 'Quit'
 
 cells = []
 cellMap = {}
+
+uiAvailableRedMoves = []
+uiAvailableBlueMoves = []
+
+def drawAvailableMovesPanel():
+
+    for elem in uiAvailableRedMoves:
+        elem.undraw()
+
+    for elem in uiAvailableBlueMoves:
+        elem.undraw()
+
+    uiAvailableRedMoves.clear();
+    uiAvailableBlueMoves.clear()
+
+    startX = 0
+    startY = WINDOW_SIZE_Y
+
+    CLEARENCE = WINDOW_SIZE_X / 15
+
+    for i in range(1, 16):
+        label = Text(Point(startX + CLEARENCE / 2, startY + AVAILABLE_MOVES_PANEL_HEIGH * 0.25), str(i))
+        label.setFace('courier')
+        label.setStyle('bold')
+        label.setSize(24)
+        label.setWidth(CLEARENCE)
+        label.setFill(RED_COLOR)
+        uiAvailableRedMoves.append(label)
+        label.draw(window)
+        startX += CLEARENCE
+
+    startX = 0
+    startY += AVAILABLE_MOVES_PANEL_HEIGH/2
+
+    for i in range(1, 16):
+        label = Text(Point(startX + CLEARENCE / 2, startY + AVAILABLE_MOVES_PANEL_HEIGH * 0.25), str(i))
+        label.setFace('courier')
+        label.setStyle('bold')
+        label.setSize(24)
+        label.setWidth(CLEARENCE)
+        label.setFill(BLUE_COLOR)
+        uiAvailableBlueMoves.append(label)
+        label.draw(window)
+        startX += CLEARENCE
 
 class CELL_TYPE(Enum):
     PLAYABLE = 0
@@ -154,9 +200,11 @@ def moveFoward():
     if HISTORY_INDEX % 2 == 0:
         cellMap[data[0:2]].SetType(FIRST_PLAYER_COLOR)
         cellMap[data[0:2]].SetValue(int(data[3:]))
+        uiAvailableRedMoves[int(data[3:]) - 1].setFill('')
     else:
         cellMap[data[0:2]].SetType(SECOND_PLAYER_COLOR)
         cellMap[data[0:2]].SetValue(int(data[3:]))
+        uiAvailableBlueMoves[int(data[3:]) - 1].setFill('')
 
     HISTORY_INDEX += 1
 
@@ -165,6 +213,12 @@ def moveBackward():
 
     data = history[HISTORY_INDEX + 5]
     print(data)
+
+    if cellMap[data[0:2]].GetType() == CELL_TYPE.RED_PLAYER:
+        uiAvailableRedMoves[int(data[3:]) - 1].setFill(RED_COLOR)
+    else:
+        uiAvailableBlueMoves[int(data[3:]) - 1].setFill(BLUE_COLOR)
+    
     cellMap[data[0:2]].SetType(CELL_TYPE.PLAYABLE)
     cellMap[data[0:2]].SetValue(data[0:2])
 
@@ -233,6 +287,8 @@ def clearBoard():
     GAME_NR += 1
     for cell in cells:
         cell.Reset()
+
+    drawAvailableMovesPanel()
 
 def getNeighbors(cellID):
     letter = cellID[0]
@@ -418,7 +474,15 @@ def updateScoring():
     bluePointsLabel.setText(str(blueScore))
 
 def placeToken(token, value, color):
+
+    global uiAvailableRedMoves
+    global uiAvailableBlueMoves
+    
     if cellMap[token].GetType() == CELL_TYPE.PLAYABLE:
+        if color == FIRST_PLAYER_COLOR:
+            uiAvailableRedMoves[value - 1].setFill('')
+        elif color == SECOND_PLAYER_COLOR:
+            uiAvailableBlueMoves[value - 1].setFill('')
         cellMap[token].SetType(color)
         cellMap[token].SetValue(value)
     else:

@@ -238,6 +238,16 @@ namespace CodeCup2018
 			return clearlyWinningCells;
 		}
 
+		int getMapCompoundValue()
+		{
+			int totalCompoundValue = 0;
+			for (auto unplayedCellID : allowedMoves)
+			{
+				totalCompoundValue += cellMapping[unplayedCellID]->compoundValue;
+			}
+			return totalCompoundValue;
+		}
+
 		void placeEnemyMove(const Move& enemyMove)
 		{
 			cellID id = enemyMove.first;
@@ -319,6 +329,17 @@ namespace CodeCup2018
 		}
 	};
 
+	class ManualPlayer : public CodeCup2018::BasePlayer
+	{
+	public:
+		Move nextMove()
+		{
+			std::string manualMove;
+			std::cin >> manualMove;
+			return raw2Move(manualMove);
+		}
+	};
+
 /////////////////////////////////////////////////////////////////////////////
 //
 // Specialization of player
@@ -334,6 +355,7 @@ namespace CodeCup2018
 			std::vector<cellID> lostCells;
 			std::vector<cellID> winningCells;
 			std::vector<cellID> loosingCells;
+			int mapCompoundValue;
 
 			std::string toString()
 			{
@@ -343,6 +365,7 @@ namespace CodeCup2018
 				ss << " Lost: "; for (auto cellID : lostCells) ss << cellID << " ";
 				ss << " Winning: "; for (auto cellID : winningCells) ss << cellID << " ";
 				ss << " Loosing: "; for (auto cellID : loosingCells) ss << cellID << " ";
+				ss << " Comp value: " << mapCompoundValue;
 				return ss.str();
 			}
 		};
@@ -369,6 +392,7 @@ namespace CodeCup2018
 					gain.lostCells = getClearLoosingCellsIDs();
 					gain.winningCells = getWinningCellsIDs();
 					gain.loosingCells = getLoosingCellsIDs();
+					gain.mapCompoundValue = getMapCompoundValue();
 					cancelMove(Move(cellID, cellValue));
 					gains.push_back(gain);
 				}

@@ -36,7 +36,7 @@ WINDOW_SIZE_Y = 700
 
 CELL_RADIUS = 50
 DELAY = 0
-NR_GAMES = 1
+NR_GAMES = 108
 
 RED_COLOR = '#e43326'
 BLUE_COLOR = '#2f41a5'
@@ -462,21 +462,18 @@ def updateScoring():
     global redTimeData
     global blueTimeData
     if RUN_WITH_TIME_LIMIT_ENABLED:
-        print('Red time data')
         redDuration = datetime.timedelta(0)
-        for i in range(6, 35, 2):
+        for i in range(1, 31, 2):
             duration = redTimeData[i] - redTimeData[i - 1]
-            print(duration)
             redDuration += duration
-        print('Blue time data')
-        print(blueTimeData)
+        print(redDuration)
         blueDuration = datetime.timedelta(0)
-        for i in range(6, 35, 2):
+        for i in range(1, 31, 2):
             duration = blueTimeData[i] - blueTimeData[i - 1]
-            print('Subtracking ' + str(i - 1) + ' from ' + str(i))
-            print(duration)
             blueDuration += duration
         print(blueDuration)
+    redTimeData.clear()
+    blueTimeData.clear()
             
 
     for cell in cells:
@@ -527,9 +524,9 @@ def placeToken(token, value, color):
     
     if cellMap[token].GetType() == CELL_TYPE.PLAYABLE:
         if color == FIRST_PLAYER_COLOR:
-            uiAvailableRedMoves[value - 1].setFill('')
+            uiAvailableRedMoves[value - 1].setFill('#F9D4D2')
         elif color == SECOND_PLAYER_COLOR:
-            uiAvailableBlueMoves[value - 1].setFill('')
+            uiAvailableBlueMoves[value - 1].setFill('#D7DCF4')
         cellMap[token].SetType(color)
         cellMap[token].SetValue(value)
     else:
@@ -589,6 +586,10 @@ def runServer():
     BLUE_SOCKET_CONNECTION = blueConn
 
     sendDataToClient(blueConn, str(NR_GAMES))
+    global redTimeData
+    global blueTimeData
+    redTimeData = redTimeData[1:]
+    blueTimeData = blueTimeData[1:]
 
     for i in range(1, NR_GAMES + 1):
         clearBoard()
@@ -601,6 +602,9 @@ def runServer():
         for cell in cells:
             if cell.GetType() == CELL_TYPE.BLOCKED:
                 sendDataToClient(blueConn, cell.GetLetter())
+
+        redTimeData = redTimeData[5:]
+        blueTimeData = blueTimeData[5:]
 
         firstPlayerConn = redConn
         secondPlayerConn = blueConn
@@ -629,6 +633,9 @@ def runServer():
         sendDataToClient(firstPlayerConn, MESSAGE_END_GAME)
         print("Sending QUIT to " + SECOND_PLAYER_COLOR.name)
         sendDataToClient(secondPlayerConn, MESSAGE_END_GAME)
+
+        redTimeData = redTimeData[:-1]
+        blueTimeData = blueTimeData[:-1]
 
         updateScoring()
 

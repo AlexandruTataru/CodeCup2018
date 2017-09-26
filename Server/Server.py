@@ -16,6 +16,12 @@ RUN_IN_ONLINE_MODE = False
 history = []
 HISTORY_INDEX = -1
 
+RUN_WITH_TIME_LIMIT_ENABLED = True
+RED_SOCKET_CONNECTION = None
+BLUE_SOCKET_CONNECTION = None
+redTimeData = []
+blueTimeData = []
+
 TIMESTAMP = None
 RED_FOLDER = None
 BLUE_FOLDER = None
@@ -23,14 +29,14 @@ DRAWS_FOLDER = None
 GAME_NR = 0
 CURRENT_FILE_NAME = None
 
-AVAILABLE_MOVES_PANEL_HEIGH = 150
+AVAILABLE_MOVES_PANEL_HEIGH = 100
 
 WINDOW_SIZE_X = 800
 WINDOW_SIZE_Y = 700
 
 CELL_RADIUS = 50
 DELAY = 0
-NR_GAMES = 10
+NR_GAMES = 1
 
 RED_COLOR = '#e43326'
 BLUE_COLOR = '#2f41a5'
@@ -171,14 +177,10 @@ def readHistory():
     filePath = filedialog.askopenfilename(filetypes=(("Game files", "*.game"),))
     if filePath is '':
         return
-    print('Selected file path: ' + filePath)
     
     with open(filePath) as f:
         history = f.readlines()
     history = [x.strip() for x in history]
-
-    for h in history:
-        print(h)
 
     for entry in history[:5]:
         cellMap[entry].SetType(CELL_TYPE.BLOCKED)
@@ -186,9 +188,6 @@ def readHistory():
     if FIRST_PLAYER_COLOR.name != history[5]:
         FIRST_PLAYER_COLOR = CELL_TYPE.BLUE_PLAYER
         SECOND_PLAYER_COLOR = CELL_TYPE.RED_PLAYER
-
-    print('First player: ' + FIRST_PLAYER_COLOR.name)
-    print('Second player: ' + SECOND_PLAYER_COLOR.name)
 
     HISTORY_INDEX = 0
 
@@ -198,24 +197,23 @@ def moveForward():
     global uiAvailableBlueMoves
 
     data = history[HISTORY_INDEX + 6]
-    print(data)
     if HISTORY_INDEX % 2 == 0:
         cellMap[data[0:2]].SetType(FIRST_PLAYER_COLOR)
         cellMap[data[0:2]].SetValue(int(data[3:]))
 
         if FIRST_PLAYER_COLOR == CELL_TYPE.RED_PLAYER:
-            uiAvailableRedMoves[int(data[3:]) - 1].setFill('')
+            uiAvailableRedMoves[int(data[3:]) - 1].setFill('#F9D4D2')
         else:
-            uiAvailableBlueMoves[int(data[3:]) - 1].setFill('')
+            uiAvailableBlueMoves[int(data[3:]) - 1].setFill('#D7DCF4')
         
     else:
         cellMap[data[0:2]].SetType(SECOND_PLAYER_COLOR)
         cellMap[data[0:2]].SetValue(int(data[3:]))
 
         if SECOND_PLAYER_COLOR == CELL_TYPE.RED_PLAYER:
-            uiAvailableRedMoves[int(data[3:]) - 1].setFill('')
+            uiAvailableRedMoves[int(data[3:]) - 1].setFill('#F9D4D2')
         else:
-            uiAvailableBlueMoves[int(data[3:]) - 1].setFill('')
+            uiAvailableBlueMoves[int(data[3:]) - 1].setFill('#D7DCF4')
 
     HISTORY_INDEX += 1
 
@@ -225,7 +223,6 @@ def moveBackward():
     global uiAvailableBlueMoves
 
     data = history[HISTORY_INDEX + 5]
-    print(data)
 
     if cellMap[data[0:2]].GetType() == CELL_TYPE.RED_PLAYER:
         uiAvailableRedMoves[int(data[3:]) - 1].setFill(RED_COLOR)
@@ -281,14 +278,30 @@ def chooseRandomBlockedBlocks():
             appendToHistory(cell.GetLetter())
 
 def sendDataToClient(conn, data):
-    print('Sent data: ' + data);
+    global RUN_WITH_TIME_LIMIT_ENABLED
+    global redTimeData
+    global blueTimeData
     conn.send(bytes(data.encode()))
+    if RUN_WITH_TIME_LIMIT_ENABLED:
+        time = datetime.datetime.now()
+        if conn == RED_SOCKET_CONNECTION:
+            redTimeData.append(time)
+        elif conn == BLUE_SOCKET_CONNECTION:
+            blueTimeData.append(time)
 
 def readDataFromClient(conn):
     data = conn.recv(128)
-    time.sleep(DELAY)
+    global redTimeData
+    global blueTimeData
+    global RUN_WITH_TIME_LIMIT_ENABLED
+    if RUN_WITH_TIME_LIMIT_ENABLED:
+        time = datetime.datetime.now()
+        if conn == RED_SOCKET_CONNECTION:
+            redTimeData.append(time)
+        elif conn == BLUE_SOCKET_CONNECTION:
+            blueTimeData.append(time)
+    #time.sleep(DELAY)            
     dataRead = str(data, 'utf-8')
-    print('Read data: ' + dataRead)
     appendToHistory(dataRead)
     return dataRead
 
@@ -445,6 +458,27 @@ def updateScoring():
     redPoints = 0
     bluePoints = 0
 
+    global RUN_WITH_TIME_LIMIT_ENABLED
+    global redTimeData
+    global blueTimeData
+    if RUN_WITH_TIME_LIMIT_ENABLED:
+        print('Red time data')
+        redDuration = datetime.timedelta(0)
+        for i in range(6, 35, 2):
+            duration = redTimeData[i] - redTimeData[i - 1]
+            print(duration)
+            redDuration += duration
+        print('Blue time data')
+        print(blueTimeData)
+        blueDuration = datetime.timedelta(0)
+        for i in range(6, 35, 2):
+            duration = blueTimeData[i] - blueTimeData[i - 1]
+            print('Subtracking ' + str(i - 1) + ' from ' + str(i))
+            print(duration)
+            blueDuration += duration
+        print(blueDuration)
+            
+
     for cell in cells:
         if cell.GetType() == CELL_TYPE.PLAYABLE:
             neighbors = getNeighbors(cell.GetLetter())
@@ -549,6 +583,11 @@ def runServer():
     print('Waiting for BLUE Player')
     blueConn, addr = blueSocket.accept()
 
+    global RED_SOCKET_CONNECTION
+    global BLUE_SOCKET_CONNECTION
+    RED_SOCKET_CONNECTION = redConn
+    BLUE_SOCKET_CONNECTION = blueConn
+
     sendDataToClient(blueConn, str(NR_GAMES))
 
     for i in range(1, NR_GAMES + 1):
@@ -578,18 +617,12 @@ def runServer():
 
         NR_MOVES = 15
         for i in range(0, NR_MOVES):                
-            print('Waiting to read from ' + FIRST_PLAYER_COLOR.name)
             data = readDataFromClient(firstPlayerConn)
-            print(data)
             placeToken(data[0:2], int(data[3:]), FIRST_PLAYER_COLOR)
-            print('Sending move to ' + SECOND_PLAYER_COLOR.name)
             sendDataToClient(secondPlayerConn, data)
-            print('Waiting to read from ' + SECOND_PLAYER_COLOR.name)
             data = readDataFromClient(secondPlayerConn)
-            print(data)
             placeToken(data[0:2], int(data[3:]), SECOND_PLAYER_COLOR)
             if i != NR_MOVES - 1:
-                print('Sending more to ' + FIRST_PLAYER_COLOR.name)
                 sendDataToClient(firstPlayerConn, data)
 
         print("Sending QUIT to " + FIRST_PLAYER_COLOR.name)
@@ -608,7 +641,6 @@ def runServer():
 def on_press(key):
     try: k = key.char
     except: k = key.name
-    print(k)
     if not RUN_IN_ONLINE_MODE:
         if k == 'right':
             if HISTORY_INDEX >= 0 and HISTORY_INDEX < 30:

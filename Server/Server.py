@@ -36,7 +36,7 @@ WINDOW_SIZE_Y = 700
 
 CELL_RADIUS = 50
 DELAY = 0
-NR_GAMES = 1
+NR_GAMES = 108
 
 RED_COLOR = '#e43326'
 BLUE_COLOR = '#2f41a5'
@@ -463,16 +463,17 @@ def updateScoring():
     global blueTimeData
     if RUN_WITH_TIME_LIMIT_ENABLED:
         redDuration = datetime.timedelta(0)
-        for i in range(6, 35, 2):
+        for i in range(1, 31, 2):
             duration = redTimeData[i] - redTimeData[i - 1]
-            print(str(redTimeData[i]) + ' - ' + str(redTimeData[i - 1]) + ' = ' + str(duration))
             redDuration += duration
         print(redDuration)
         blueDuration = datetime.timedelta(0)
-        for i in range(7, 35, 2):
+        for i in range(1, 31, 2):
             duration = blueTimeData[i] - blueTimeData[i - 1]
             blueDuration += duration
         print(blueDuration)
+    redTimeData.clear()
+    blueTimeData.clear()
             
 
     for cell in cells:
@@ -585,6 +586,10 @@ def runServer():
     BLUE_SOCKET_CONNECTION = blueConn
 
     sendDataToClient(blueConn, str(NR_GAMES))
+    global redTimeData
+    global blueTimeData
+    redTimeData = redTimeData[1:]
+    blueTimeData = blueTimeData[1:]
 
     for i in range(1, NR_GAMES + 1):
         clearBoard()
@@ -597,6 +602,9 @@ def runServer():
         for cell in cells:
             if cell.GetType() == CELL_TYPE.BLOCKED:
                 sendDataToClient(blueConn, cell.GetLetter())
+
+        redTimeData = redTimeData[5:]
+        blueTimeData = blueTimeData[5:]
 
         firstPlayerConn = redConn
         secondPlayerConn = blueConn
@@ -625,6 +633,9 @@ def runServer():
         sendDataToClient(firstPlayerConn, MESSAGE_END_GAME)
         print("Sending QUIT to " + SECOND_PLAYER_COLOR.name)
         sendDataToClient(secondPlayerConn, MESSAGE_END_GAME)
+
+        redTimeData = redTimeData[:-1]
+        blueTimeData = blueTimeData[:-1]
 
         updateScoring()
 

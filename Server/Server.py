@@ -462,19 +462,15 @@ def updateScoring():
     global redTimeData
     global blueTimeData
     if RUN_WITH_TIME_LIMIT_ENABLED:
-        print('Red time data')
         redDuration = datetime.timedelta(0)
         for i in range(6, 35, 2):
             duration = redTimeData[i] - redTimeData[i - 1]
-            print(duration)
+            print(str(redTimeData[i]) + ' - ' + str(redTimeData[i - 1]) + ' = ' + str(duration))
             redDuration += duration
-        print('Blue time data')
-        print(blueTimeData)
+        print(redDuration)
         blueDuration = datetime.timedelta(0)
-        for i in range(6, 35, 2):
+        for i in range(7, 35, 2):
             duration = blueTimeData[i] - blueTimeData[i - 1]
-            print('Subtracking ' + str(i - 1) + ' from ' + str(i))
-            print(duration)
             blueDuration += duration
         print(blueDuration)
             
@@ -527,9 +523,9 @@ def placeToken(token, value, color):
     
     if cellMap[token].GetType() == CELL_TYPE.PLAYABLE:
         if color == FIRST_PLAYER_COLOR:
-            uiAvailableRedMoves[value - 1].setFill('')
+            uiAvailableRedMoves[value - 1].setFill('#F9D4D2')
         elif color == SECOND_PLAYER_COLOR:
-            uiAvailableBlueMoves[value - 1].setFill('')
+            uiAvailableBlueMoves[value - 1].setFill('#D7DCF4')
         cellMap[token].SetType(color)
         cellMap[token].SetValue(value)
     else:

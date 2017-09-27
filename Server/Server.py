@@ -299,8 +299,7 @@ def readDataFromClient(conn):
         if conn == RED_SOCKET_CONNECTION:
             redTimeData.append(time)
         elif conn == BLUE_SOCKET_CONNECTION:
-            blueTimeData.append(time)
-    #time.sleep(DELAY)            
+            blueTimeData.append(time) 
     dataRead = str(data, 'utf-8')
     appendToHistory(dataRead)
     return dataRead
@@ -335,8 +334,8 @@ def getNeighbors(cellID):
 
     return neighbors
 
-redScore = 0
-blueScore = 0
+redWonGames = 0
+blueWonGames = 0
 redTotalScore = 0
 blueTotalScore = 0
 
@@ -355,15 +354,15 @@ winnerLabel.draw(window)
 scoreLabel.draw(window)
 
 def clearScore():
-    global redScore
-    global blueScore
+    global redWonGames
+    global blueWonGames
     global redTotalScore
     global blueTotalScore
     global winnerLabel
     global scoreLabel
 
-    redScore = 0
-    blueScore = 0
+    redWonGames = 0
+    blueWonGames = 0
     redTotalScore = 0
     blueTotalScore = 0
 
@@ -449,14 +448,14 @@ def drawScoreTable():
     bluePointsLabel.draw(window)
 
 def updateScoring():
-    global redScore
-    global blueScore
+    global redWonGames
+    global blueWonGames
     global redTotalScore
     global blueTotalScore
     global winnerLabel
     global scoreLabel
-    redPoints = 0
-    bluePoints = 0
+    currentGameRedPlayerPoints = 0
+    currentGameBluePlayerPoints = 0
 
     global RUN_WITH_TIME_LIMIT_ENABLED
     global redTimeData
@@ -481,31 +480,29 @@ def updateScoring():
             neighbors = getNeighbors(cell.GetLetter())
             for neighbor in neighbors:
                 if neighbor.GetType() == CELL_TYPE.RED_PLAYER:
-                    redPoints += neighbor.GetValue()
+                    currentGameRedPlayerPoints += neighbor.GetValue()
                 elif neighbor.GetType() == CELL_TYPE.BLUE_PLAYER:
-                    bluePoints += neighbor.GetValue()
+                    currentGameBluePlayerPoints += neighbor.GetValue()
 
-    redFinalPoints = 75 - bluePoints + redPoints
-    blueFinalPoints = 75 - redPoints + bluePoints
+    redFinalPoints = 75 - currentGameBluePlayerPoints + currentGameRedPlayerPoints
+    blueFinalPoints = 75 - currentGameRedPlayerPoints + currentGameBluePlayerPoints
 
     redTotalScore += redFinalPoints
     blueTotalScore += blueFinalPoints
     
     if blueFinalPoints > redFinalPoints:
-        blueScore += 1
+        blueWonGames += 1
         winnerLabel.setText("BLUE WON")
         winnerLabel.setFill(BLUE_COLOR)
         scoreLabel.setText(str(blueFinalPoints) + " to " + str(redFinalPoints))
         os.rename(CURRENT_FILE_NAME, BLUE_FOLDER + '/' + CURRENT_FILE_NAME)
     elif blueFinalPoints < redFinalPoints:
-        redScore += 1
+        redWonGames += 1
         winnerLabel.setText("RED WON")
         winnerLabel.setFill(RED_COLOR)
         scoreLabel.setText(str(redFinalPoints) + " to " + str(blueFinalPoints))
         os.rename(CURRENT_FILE_NAME, RED_FOLDER + '/' + CURRENT_FILE_NAME)
     elif blueFinalPoints == redFinalPoints:
-        redTotalScore += redFinalPoints
-        blueTotalScore += blueFinalPoints
         winnerLabel.setText("DRAW")
         winnerLabel.setFill('black')
         scoreLabel.setText(str(redFinalPoints) + " SAME")
@@ -514,8 +511,8 @@ def updateScoring():
     redLabel.setText(str(redTotalScore))
     blueLabel.setText(str(blueTotalScore))
 
-    redPointsLabel.setText(str(redScore))
-    bluePointsLabel.setText(str(blueScore))
+    redPointsLabel.setText(str(redWonGames))
+    bluePointsLabel.setText(str(blueWonGames))
 
 def placeToken(token, value, color):
 

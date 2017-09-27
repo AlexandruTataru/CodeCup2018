@@ -11,6 +11,7 @@ import time
 import _thread
 import tkinter as tk
 from tkinter import filedialog
+from tkinter import messagebox
 
 RUN_IN_ONLINE_MODE = False
 history = []
@@ -36,7 +37,7 @@ WINDOW_SIZE_Y = 700
 
 CELL_RADIUS = 50
 DELAY = 0
-NR_GAMES = 108
+NR_GAMES = 1
 
 RED_COLOR = '#e43326'
 BLUE_COLOR = '#2f41a5'
@@ -460,20 +461,26 @@ def updateScoring():
     global RUN_WITH_TIME_LIMIT_ENABLED
     global redTimeData
     global blueTimeData
+
+    redDuration = datetime.timedelta(0)
+    blueDuration = datetime.timedelta(0)
+    
     if RUN_WITH_TIME_LIMIT_ENABLED:
-        redDuration = datetime.timedelta(0)
         for i in range(1, 31, 2):
             duration = redTimeData[i] - redTimeData[i - 1]
             redDuration += duration
         print(redDuration)
-        blueDuration = datetime.timedelta(0)
         for i in range(1, 31, 2):
             duration = blueTimeData[i] - blueTimeData[i - 1]
             blueDuration += duration
         print(blueDuration)
     redTimeData.clear()
     blueTimeData.clear()
-            
+
+    if redDuration.seconds > 5:
+        messagebox.showerror('Timeout detected', 'RED player has used the entire 5 seconds for it\'s moves')
+    if blueDuration.seconds > 5:
+        messagebox.showerror('Timeout detected', 'BLUE player has used the entire 5 seconds for it\'s moves')
 
     for cell in cells:
         if cell.GetType() == CELL_TYPE.PLAYABLE:
@@ -514,12 +521,24 @@ def updateScoring():
     redPointsLabel.setText(str(redWonGames))
     bluePointsLabel.setText(str(blueWonGames))
 
+def moveIsValid(token, value):
+    if token not in cellMap.keys():
+        return False
+
+    if value < 0 or value > 15:
+        return False
+
+    if not cellMap[token].GetType() == CELL_TYPE.PLAYABLE:
+        return False
+    
+    return True
+
 def placeToken(token, value, color):
 
     global uiAvailableRedMoves
     global uiAvailableBlueMoves
     
-    if cellMap[token].GetType() == CELL_TYPE.PLAYABLE:
+    if moveIsValid(token, value):
         if color == FIRST_PLAYER_COLOR:
             uiAvailableRedMoves[value - 1].setFill('#F9D4D2')
         elif color == SECOND_PLAYER_COLOR:
@@ -527,7 +546,7 @@ def placeToken(token, value, color):
         cellMap[token].SetType(color)
         cellMap[token].SetValue(value)
     else:
-        exit(-1)
+        messagebox.showerror('Invalid move detected', 'The last received move (' + token + '=' + str(value) + ') is invalid.')
 
 def runServer():
     global RUN_IN_ONLINE_MODE

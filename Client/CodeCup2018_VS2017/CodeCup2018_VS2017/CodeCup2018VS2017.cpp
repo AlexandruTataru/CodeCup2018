@@ -539,7 +539,7 @@ int main(int argc, char **argv)
 
 	getaddrinfo(host.c_str(), port.c_str(), &hints, &result);
 	srand(time(NULL));
-
+	bool connectionOK = false;
 	for (ptr = result; ptr != NULL; ptr = ptr->ai_next) {
 		ConnectSocket = socket(ptr->ai_family, ptr->ai_socktype,
 			ptr->ai_protocol);
@@ -549,10 +549,18 @@ int main(int argc, char **argv)
 			ConnectSocket = INVALID_SOCKET;
 			continue;
 		}
+		connectionOK = true;
 		break;
 	}
-
+	
 	freeaddrinfo(result);
+
+	if (!connectionOK)
+	{
+		cout << "No server connection available." << endl;
+		getchar();
+		exit(-1);
+	}
 
 	nrGames = std::stoi(receiveData(ConnectSocket, 10));
 #elif defined(OFFLINE_DEBUG_MODE)

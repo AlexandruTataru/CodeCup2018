@@ -311,7 +311,7 @@ namespace CodeCup2018
 
 /////////////////////////////////////////////////////////////////////////////
 //
-// Random player
+// Basic players
 //
 /////////////////////////////////////////////////////////////////////////////
 
@@ -322,10 +322,9 @@ namespace CodeCup2018
 		{
 			std::string cellID = allowedMoves[rand() % allowedMoves.size()];
 			int cellValue = allowedValues[rand() % allowedValues.size()];
-			allowedMoves.erase(std::remove(allowedMoves.begin(), allowedMoves.end(), cellID), allowedMoves.end());
-			allowedValues.erase(std::remove(allowedValues.begin(), allowedValues.end(), cellValue), allowedValues.end());
-			--movesLeft;
-			return Move(cellID, cellValue);
+			Move move = Move(cellID, cellValue);
+			placeOwnMove(move);
+			return move;
 		}
 	};
 
@@ -337,6 +336,39 @@ namespace CodeCup2018
 			std::string manualMove;
 			std::cin >> manualMove;
 			return raw2Move(manualMove);
+		}
+	};
+
+	class ChokePlayer : public CodeCup2018::BasePlayer
+	{
+		struct Gains
+		{
+			Move move;
+			std::vector<cellID> wonCells;
+			std::vector<cellID> lostCells;
+			std::vector<cellID> winningCells;
+			std::vector<cellID> loosingCells;
+			int mapCompoundValue;
+
+			std::string toString()
+			{
+				std::stringstream ss;
+				ss << "Move: " << move.first << "=" << move.second;
+				ss << " Won: "; for (auto cellID : wonCells) ss << cellID << " ";
+				ss << " Lost: "; for (auto cellID : lostCells) ss << cellID << " ";
+				ss << " Winning: "; for (auto cellID : winningCells) ss << cellID << " ";
+				ss << " Loosing: "; for (auto cellID : loosingCells) ss << cellID << " ";
+				ss << " Comp value: " << mapCompoundValue;
+				return ss.str();
+			}
+		};
+	public:
+		Move nextMove()
+		{
+			Move move;
+			move =  Move(allowedMoves[0], allowedValues[0]);
+			placeOwnMove(move);
+			return move;
 		}
 	};
 
@@ -433,7 +465,6 @@ namespace CodeCup2018
 			}
 
 			placeOwnMove(choosenMove);
-
 			return choosenMove;
 		}
 	};
@@ -489,7 +520,7 @@ int main(int argc, char **argv)
 	}
 
 	using namespace CodeCup2018;
-	BasePlayer *player = new Competitor();
+	BasePlayer *player = new ChokePlayer();
 	int nrGames = 1;
 
 #ifdef SOCKET_MODE

@@ -73,12 +73,12 @@ namespace CodeCup2018
 	class BasePlayer
 	{
 	protected:
-		std::vector<cellID> allowedMoves;
-		std::vector<cellValue> allowedValues;
-		std::vector<cellValue> enemyAllowedValues;
-		std::map<cellID, Cell*> cellMapping;
-		int movesLeft;
-		bool movedFirst;
+		static std::vector<cellID> allowedMoves;
+		static std::vector<cellValue> allowedValues;
+		static std::vector<cellValue> enemyAllowedValues;
+		static std::map<cellID, Cell*> cellMapping;
+		static int movesLeft;
+		static bool movedFirst;
 	public:
 		BasePlayer() { resetGame(); }
 		~BasePlayer() {
@@ -105,7 +105,7 @@ namespace CodeCup2018
 			return ss.str();
 		}
 
-		virtual void processBlockedMove(const Move& move)
+		void processBlockedMove(const Move& move)
 		{
 			allowedMoves.erase(std::remove(allowedMoves.begin(),
 				allowedMoves.end(),
@@ -114,7 +114,7 @@ namespace CodeCup2018
 			cellMapping[move.first]->cellType = BLOCKED;
 		}
 
-		virtual void processEnemyMove(const Move& move)
+		void processEnemyMove(const Move& move)
 		{
 			if (move.first == "St") 
 			{
@@ -126,7 +126,7 @@ namespace CodeCup2018
 
 		virtual Move nextMove() = 0;
 
-		virtual void resetGame() {
+		void resetGame() {
 			movedFirst = false;
 			movesLeft = 15;
 			allowedMoves.clear();
@@ -309,6 +309,13 @@ namespace CodeCup2018
 		bool isMiddleGame() { return !isOpeningGame() && !isEndGame(); }
 	};
 
+	std::vector<cellID> BasePlayer::allowedMoves;
+	std::vector<cellValue> BasePlayer::allowedValues;
+	std::vector<cellValue> BasePlayer::enemyAllowedValues;
+	std::map<cellID, Cell*> BasePlayer::cellMapping;
+	int BasePlayer::movesLeft;
+	bool BasePlayer::movedFirst;
+
 /////////////////////////////////////////////////////////////////////////////
 //
 // Basic players
@@ -323,7 +330,7 @@ namespace CodeCup2018
 			std::string cellID = allowedMoves[rand() % allowedMoves.size()];
 			int cellValue = allowedValues[rand() % allowedValues.size()];
 			Move move = Move(cellID, cellValue);
-			placeOwnMove(move);
+			BasePlayer::placeOwnMove(move);
 			return move;
 		}
 	};
@@ -469,6 +476,16 @@ namespace CodeCup2018
 		}
 	};
 
+	class FinalPlayer : public BasePlayer, ChokePlayer, RandomPlayer
+	{
+	public:
+		Move nextMove()
+		{
+			if (BasePlayer::isEndGame()) return RandomPlayer::nextMove();
+			else return ChokePlayer::nextMove();
+		}
+	};
+
 }
 
 #ifdef SOCKET_MODE
@@ -520,7 +537,7 @@ int main(int argc, char **argv)
 	}
 
 	using namespace CodeCup2018;
-	BasePlayer *player = new ChokePlayer();
+	BasePlayer *player = new FinalPlayer();
 	int nrGames = 1;
 
 #ifdef SOCKET_MODE
